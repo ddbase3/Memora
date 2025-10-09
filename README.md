@@ -35,7 +35,7 @@ This modular structure ensures that Memora can act as both a standalone XRM syst
 ## Example Usage
 
 ```php
-use ResourcesApi\Api\IEntityDataService;
+use ResourceApi\Api\IEntityDataService;
 
 // get service
 $memora = $container->get(IEntityDataService::class);
