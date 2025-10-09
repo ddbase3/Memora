@@ -9,203 +9,85 @@ use DataHawk\Dto\JoinMetadata;
 
 class MemoraReportSchemaProvider implements IReportSchemaProvider {
 
-	// Implementation of IReportSchemaProvider
+	private string $schemaDir;
 
-	public function getSchema(): array {
-		return [
-			$this->getSysAllocTable(),
-			$this->getSysEntryTable(),
-			$this->getSysNameTable(),
-			$this->getSysTagTable(),
-			$this->getSysTypeTable()
-		];
+	public function __construct() {
+		$this->schemaDir = rtrim(DIR_PLUGIN, '/\\') . '/Memora/local/DataHawk';
 	}
 
-	public function getTable(string $tableName): ?TableMetadata {
-		foreach ($this->getSchema() as $table) {
-			if ($table->name === $tableName) {
-				return $table;
+	/**
+	 * Returns all available table definitions as TableMetadata objects.
+	 */
+	public function getSchema(): array {
+		$tables = [];
+		foreach (glob($this->schemaDir . '/*.json') as $file) {
+			if ($table = $this->loadTableFromFile($file)) {
+				$tables[] = $table;
 			}
+		}
+		return $tables;
+	}
+
+	/**
+	 * Returns a single table definition by name.
+	 */
+	public function getTable(string $tableName): ?TableMetadata {
+		$shortName = $this->shortenTableName($tableName);
+		$file = $this->schemaDir . '/' . $shortName . '.json';
+		if (is_file($file)) {
+			return $this->loadTableFromFile($file);
 		}
 		return null;
 	}
 
-	// Private methods
+	/**
+	 * Loads and converts a table definition JSON file to TableMetadata.
+	 */
+	private function loadTableFromFile(string $file): ?TableMetadata {
+		$json = file_get_contents($file);
+		if (!$json) {
+			return null;
+		}
 
-	private function getSysAllocTable(): TableMetadata {
+		$data = json_decode($json, true);
+		if (!is_array($data) || empty($data['name'])) {
+			return null;
+		}
+
+		$fields = array_map(fn($f) => new FieldMetadata(
+			$f['name'],
+			$f['type'] ?? 'string',
+			$f['label'] ?? $f['name'],
+			$f['required'] ?? false
+		), $data['fields'] ?? []);
+
+		$joins = array_map(fn($j) => new JoinMetadata(
+			$j['targetTable'],
+			$j['on'] ?? [],
+			$j['type'] ?? 'LEFT',
+			$j['meta'] ?? []
+		), $data['joins'] ?? []);
+
 		return new TableMetadata(
-			name: 'base3system_sysalloc',
-			label: 'XRM Allocation',
-			description: 'XRM entry allocations',
-			domain: 'xrm',
-			category: 'graph',
-			tags: ['graph', 'allocation', 'edge', 'connection'],
-			fields: [
-				new FieldMetadata('id', 'integer', 'Allocation ID', true),
-				new FieldMetadata('entry_id_1', 'integer', 'Entry ID 1', true),
-				new FieldMetadata('entry_id_2', 'integer', 'Entry ID 2', true)
-			],
-			joins: [
-				new JoinMetadata(
-					targetTable: 'base3system_sysentry',
-					on: ['base3system_sysalloc.entry_id_2' => 'base3system_sysentry.id'],
-					type: 'INNER',
-					meta: ['default' => true]
-				),
-				new JoinMetadata(
-					targetTable: 'base3system_sysentry',
-					on: ['base3system_sysalloc.entry_id_1' => 'base3system_sysentry.id'],
-					type: 'INNER',
-					meta: ['default' => true]
-				)
-			],
-			defaultFilters: [],
-			position: [ 'x' => 700, 'y' => 200 ]
+			name: $data['name'],
+			label: $data['label'] ?? $data['name'],
+			description: $data['description'] ?? '',
+			domain: $data['domain'] ?? '',
+			category: $data['category'] ?? '',
+			tags: $data['tags'] ?? [],
+			fields: $fields,
+			joins: $joins,
+			defaultFilters: $data['defaultFilters'] ?? [],
+			position: $data['position'] ?? []
 		);
 	}
 
-	private function getSysEntryTable(): TableMetadata {
-		return new TableMetadata(
-			name: 'base3system_sysentry',
-			label: 'XRM Entry',
-			description: 'XRM data entries',
-			domain: 'xrm',
-			category: 'entry',
-			tags: ['entry', 'record', 'entity'],
-			fields: [
-				new FieldMetadata('id', 'integer', 'Entry ID', true),
-				new FieldMetadata('uuid', 'binary', 'Unique ID', true),
-				new FieldMetadata('type_id', 'integer', 'Type ID', true),
-				new FieldMetadata('archive', 'boolean', 'Entry archived', true),
-				new FieldMetadata('dellock', 'boolean', 'Entry locked against deletion', true),
-				new FieldMetadata('connections', 'integer', 'Number of connected entries', true),
-				new FieldMetadata('etag', 'binary', 'Change tag for versioning', true),
-				new FieldMetadata('created', 'datetime', 'Date and time of creation', true),
-				new FieldMetadata('changed', 'datetime', 'Date and time of last change', true)
-			],
-			joins: [
-				new JoinMetadata(
-					targetTable: 'base3system_sysalloc',
-					on: ['base3system_sysentry.id' => 'base3system_sysalloc.entry_id_1'],
-					type: 'LEFT',
-					meta: ['default' => true]
-				),
-				new JoinMetadata(
-					targetTable: 'base3system_sysalloc',
-					on: ['base3system_sysentry.id' => 'base3system_sysalloc.entry_id_2'],
-					type: 'LEFT',
-					meta: ['default' => true]
-				),
-				new JoinMetadata(
-					targetTable: 'base3system_sysname',
-					on: ['base3system_sysentry.id' => 'base3system_sysname.entry_id'],
-					type: 'LEFT',
-					meta: ['default' => true]
-				),
-				new JoinMetadata(
-					targetTable: 'base3system_systag',
-					on: ['base3system_sysentry.id' => 'base3system_systag.entry_id'],
-					type: 'LEFT',
-					meta: ['default' => true]
-				),
-				new JoinMetadata(
-					targetTable: 'base3system_systype',
-					on: ['base3system_sysentry.type_id' => 'base3system_systype.id'],
-					type: 'INNER',
-					meta: ['default' => true]
-				)
-			],
-			defaultFilters: [
-				// TODO id != 1
-			],
-			position: [ 'x' => 400, 'y' => 80 ]
-		);
-	}
-
-	private function getSysNameTable(): TableMetadata {
-		return new TableMetadata(
-			name: 'base3system_sysname',
-			label: 'Entry Name',
-			description: 'XRM entry names',
-			domain: 'xrm',
-			category: 'entry',
-			tags: ['name'],
-			fields: [
-				new FieldMetadata('entry_id', 'integer', 'Entry ID', true),
-				new FieldMetadata('lang_id', 'integer', 'Language ID', true),
-				new FieldMetadata('name', 'string', 'Name of the entry', true)
-			],
-			joins: [
-				new JoinMetadata(
-					targetTable: 'base3system_sysentry',
-					on: ['base3system_sysname.entry_id' => 'base3system_sysentry.id'],
-					type: 'INNER',
-					meta: ['default' => true]
-				)
-			],
-			defaultFilters: [
-				// TODO lang_id = 1
-			],
-			position: [ 'x' => 100, 'y' => 40 ]
-		);
-	}
-
-	private function getSysTagTable(): TableMetadata {
-		return new TableMetadata(
-			name: 'base3system_systag',
-			label: 'Entry Type',
-			description: 'XRM entry types',
-			domain: 'xrm',
-			category: 'meta',
-			tags: ['tag'],
-			fields: [
-				new FieldMetadata('entry_id', 'integer', 'Entry ID', true),
-				new FieldMetadata('tag', 'string', 'Entry tag', true)
-			],
-			joins: [
-				new JoinMetadata(
-					targetTable: 'base3system_sysentry',
-					on: ['base3system_systag.entry_id' => 'base3system_sysentry.id'],
-					type: 'INNER',
-					meta: ['default' => true]
-				)
-			],
-			defaultFilters: [],
-			position: [ 'x' => 700, 'y' => 40 ]
-		);
-	}
-
-	private function getSysTypeTable(): TableMetadata {
-		return new TableMetadata(
-			name: 'base3system_systype',
-			label: 'Entry Type',
-			description: 'XRM entry types',
-			domain: 'xrm',
-			category: 'entry',
-			tags: ['type'],
-			fields: [
-				new FieldMetadata('id', 'integer', 'Type ID', true),
-				new FieldMetadata('alias', 'string', 'Type alias', true),
-				new FieldMetadata('dbtable', 'string', 'Database table for entry payload data', true),
-				new FieldMetadata('primary', 'string', 'Primary key field of payload data table', true)
-			],
-			joins: [
-				new JoinMetadata(
-					targetTable: 'base3system_sysentry',
-					on: ['base3system_systype.id' => 'base3system_sysentry.type_id'],
-					type: 'LEFT',
-					meta: ['default' => true]
-				),
-				new JoinMetadata(
-					targetTable: 'base3system_sysentry',
-					on: ['base3system_systype.id' => 'base3system_sysentry.type_id'],
-					type: 'INNER'
-				)
-			],
-			defaultFilters: [
-				// TODO id != 1
-			],
-			position: [ 'x' => 100, 'y' => 200 ]
-		);
+	/**
+	 * Converts a full table name to its short JSON file base name.
+	 * Example: "base3system_sysentry" → "sysentry"
+	 */
+	private function shortenTableName(string $tableName): string {
+		return preg_replace('/^base3system_/', '', $tableName);
 	}
 }
+

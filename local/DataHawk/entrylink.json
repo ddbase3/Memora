@@ -1,0 +1,26 @@
+{
+	"name": "base3system_entrylink",
+	"label": "XRM Data Link",
+	"description": "Link and reference data records for XRM entries",
+	"domain": "xrm",
+	"category": "data",
+	"tags": ["link", "url", "reference", "entry"],
+	"fields": [
+		{ "name": "id", "type": "integer", "label": "Link ID", "required": true },
+		{ "name": "name", "type": "string", "label": "Link name", "required": true },
+		{ "name": "link", "type": "text", "label": "Target URL or reference", "required": true },
+		{ "name": "description", "type": "text", "label": "Link description", "required": false },
+		{ "name": "linktype", "type": "string", "label": "Link type", "required": false }
+	],
+	"joins": [
+		{
+			"targetTable": "base3system_sysentry",
+			"on": { "base3system_entrylink.id": "base3system_sysentry.id" },
+			"type": "INNER",
+			"meta": { "default": true }
+		}
+	],
+	"defaultFilters": [],
+	"position": { "x": 0, "y": 0 }
+}
+

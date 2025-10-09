@@ -1,0 +1,30 @@
+{
+	"name": "base3system_entryaccount",
+	"label": "XRM Data Account",
+	"description": "Account data records for XRM entries",
+	"domain": "xrm",
+	"category": "data",
+	"tags": ["account", "data", "entry"],
+	"fields": [
+		{ "name": "id", "type": "integer", "label": "Account ID", "required": true },
+		{ "name": "name", "type": "string", "label": "Account name", "required": true },
+		{ "name": "description", "type": "text", "label": "Account description", "required": false },
+		{ "name": "accounttype", "type": "string", "label": "Account type", "required": false },
+		{ "name": "data0", "type": "string", "label": "Additional data field 0", "required": false },
+		{ "name": "data1", "type": "string", "label": "Additional data field 1", "required": false },
+		{ "name": "data2", "type": "string", "label": "Additional data field 2", "required": false },
+		{ "name": "data3", "type": "string", "label": "Additional data field 3", "required": false },
+		{ "name": "data4", "type": "string", "label": "Additional data field 4", "required": false }
+	],
+	"joins": [
+		{
+			"targetTable": "base3system_sysentry",
+			"on": { "base3system_entryaccount.id": "base3system_sysentry.id" },
+			"type": "INNER",
+			"meta": { "default": true }
+		}
+	],
+	"defaultFilters": [],
+	"position": { "x": 0, "y": 0 }
+}
+

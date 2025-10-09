@@ -1,0 +1,26 @@
+{
+	"name": "base3system_entryfolder",
+	"label": "XRM Data Folder",
+	"description": "Folder or container data records for XRM entries",
+	"domain": "xrm",
+	"category": "data",
+	"tags": ["folder", "container", "structure", "entry"],
+	"fields": [
+		{ "name": "id", "type": "integer", "label": "Folder ID", "required": true },
+		{ "name": "name", "type": "string", "label": "Folder name", "required": true },
+		{ "name": "description", "type": "text", "label": "Folder description", "required": false },
+		{ "name": "type_id", "type": "integer", "label": "Folder type ID", "required": false },
+		{ "name": "parent_id", "type": "integer", "label": "Parent folder ID", "required": false }
+	],
+	"joins": [
+		{
+			"targetTable": "base3system_sysentry",
+			"on": { "base3system_entryfolder.id": "base3system_sysentry.id" },
+			"type": "INNER",
+			"meta": { "default": true }
+		}
+	],
+	"defaultFilters": [],
+	"position": { "x": 0, "y": 0 }
+}
+

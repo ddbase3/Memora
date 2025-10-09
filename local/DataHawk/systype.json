@@ -1,0 +1,30 @@
+{
+	"name": "base3system_systype",
+	"label": "Entry Type",
+	"description": "XRM entry types",
+	"domain": "xrm",
+	"category": "entry",
+	"tags": ["type"],
+	"fields": [
+		{ "name": "id", "type": "integer", "label": "Type ID", "required": true },
+		{ "name": "alias", "type": "string", "label": "Type alias", "required": true },
+		{ "name": "dbtable", "type": "string", "label": "Database table for entry payload data", "required": true },
+		{ "name": "primary", "type": "string", "label": "Primary key field of payload data table", "required": true }
+	],
+	"joins": [
+		{
+			"targetTable": "base3system_sysentry",
+			"on": { "base3system_systype.id": "base3system_sysentry.type_id" },
+			"type": "LEFT",
+			"meta": { "default": true }
+		},
+		{
+			"targetTable": "base3system_sysentry",
+			"on": { "base3system_systype.id": "base3system_sysentry.type_id" },
+			"type": "INNER"
+		}
+	],
+	"defaultFilters": [],
+	"position": { "x": 100, "y": 200 }
+}
+

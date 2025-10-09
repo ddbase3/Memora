@@ -1,0 +1,32 @@
+{
+	"name": "base3system_entryaddress",
+	"label": "XRM Data Address",
+	"description": "Address data records for XRM entries",
+	"domain": "xrm",
+	"category": "data",
+	"tags": ["address", "location", "geo", "entry"],
+	"fields": [
+		{ "name": "id", "type": "integer", "label": "Address ID", "required": true },
+		{ "name": "name", "type": "string", "label": "Address name", "required": true },
+		{ "name": "street", "type": "string", "label": "Street name", "required": true },
+		{ "name": "no", "type": "string", "label": "House number", "required": false },
+		{ "name": "postalcode", "type": "string", "label": "Postal code", "required": false },
+		{ "name": "city", "type": "string", "label": "City", "required": false },
+		{ "name": "country", "type": "string", "label": "Country code (ISO-2)", "required": false },
+		{ "name": "lat", "type": "double", "label": "Latitude", "required": false },
+		{ "name": "lng", "type": "double", "label": "Longitude", "required": false },
+		{ "name": "type", "type": "string", "label": "Address type", "required": false },
+		{ "name": "description", "type": "text", "label": "Description", "required": false }
+	],
+	"joins": [
+		{
+			"targetTable": "base3system_sysentry",
+			"on": { "base3system_entryaddress.id": "base3system_sysentry.id" },
+			"type": "INNER",
+			"meta": { "default": true }
+		}
+	],
+	"defaultFilters": [],
+	"position": { "x": 0, "y": 0 }
+}
+

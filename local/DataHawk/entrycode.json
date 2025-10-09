@@ -1,0 +1,25 @@
+{
+	"name": "base3system_entrycode",
+	"label": "XRM Data Code",
+	"description": "Code or identifier data for XRM entries",
+	"domain": "xrm",
+	"category": "data",
+	"tags": ["code", "identifier", "entry"],
+	"fields": [
+		{ "name": "id", "type": "integer", "label": "Code ID", "required": true },
+		{ "name": "name", "type": "string", "label": "Code name", "required": true },
+		{ "name": "code", "type": "text", "label": "Code value", "required": true },
+		{ "name": "description", "type": "text", "label": "Code description", "required": false }
+	],
+	"joins": [
+		{
+			"targetTable": "base3system_sysentry",
+			"on": { "base3system_entrycode.id": "base3system_sysentry.id" },
+			"type": "INNER",
+			"meta": { "default": true }
+		}
+	],
+	"defaultFilters": [],
+	"position": { "x": 0, "y": 0 }
+}
+

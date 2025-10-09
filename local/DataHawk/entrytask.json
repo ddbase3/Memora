@@ -1,0 +1,28 @@
+{
+	"name": "base3system_entrytask",
+	"label": "XRM Data Task",
+	"description": "Task and activity data records for XRM entries",
+	"domain": "xrm",
+	"category": "data",
+	"tags": ["task", "todo", "activity", "entry"],
+	"fields": [
+		{ "name": "id", "type": "integer", "label": "Task ID", "required": true },
+		{ "name": "name", "type": "string", "label": "Task name", "required": true },
+		{ "name": "description", "type": "text", "label": "Task description", "required": false },
+		{ "name": "start", "type": "date", "label": "Start date", "required": false },
+		{ "name": "deadline", "type": "date", "label": "Deadline", "required": false },
+		{ "name": "expense", "type": "integer", "label": "Estimated effort", "required": false },
+		{ "name": "done", "type": "integer", "label": "Completion percentage", "required": false }
+	],
+	"joins": [
+		{
+			"targetTable": "base3system_sysentry",
+			"on": { "base3system_entrytask.id": "base3system_sysentry.id" },
+			"type": "INNER",
+			"meta": { "default": true }
+		}
+	],
+	"defaultFilters": [],
+	"position": { "x": 0, "y": 0 }
+}
+

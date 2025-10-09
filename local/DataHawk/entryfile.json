@@ -1,0 +1,32 @@
+{
+	"name": "base3system_entryfile",
+	"label": "XRM Data File",
+	"description": "File and attachment data records for XRM entries",
+	"domain": "xrm",
+	"category": "data",
+	"tags": ["file", "attachment", "document", "entry"],
+	"fields": [
+		{ "name": "id", "type": "integer", "label": "File ID", "required": true },
+		{ "name": "name", "type": "string", "label": "Display name", "required": true },
+		{ "name": "filename", "type": "string", "label": "Original filename", "required": true },
+		{ "name": "tmpname", "type": "string", "label": "Temporary storage name", "required": false },
+		{ "name": "description", "type": "text", "label": "File description", "required": false },
+		{ "name": "content", "type": "text", "label": "File content (encoded or plain)", "required": false },
+		{ "name": "mime", "type": "string", "label": "MIME type", "required": false },
+		{ "name": "size", "type": "string", "label": "File size", "required": false },
+		{ "name": "created", "type": "datetime", "label": "Creation timestamp", "required": false },
+		{ "name": "changed", "type": "datetime", "label": "Modification timestamp", "required": false },
+		{ "name": "preview", "type": "string", "label": "Preview file path or URL", "required": false }
+	],
+	"joins": [
+		{
+			"targetTable": "base3system_sysentry",
+			"on": { "base3system_entryfile.id": "base3system_sysentry.id" },
+			"type": "INNER",
+			"meta": { "default": true }
+		}
+	],
+	"defaultFilters": [],
+	"position": { "x": 0, "y": 0 }
+}
+

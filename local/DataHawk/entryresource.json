@@ -1,0 +1,26 @@
+{
+	"name": "base3system_entryresource",
+	"label": "XRM Data Resource",
+	"description": "Resource and capacity data records for XRM entries",
+	"domain": "xrm",
+	"category": "data",
+	"tags": ["resource", "capacity", "quota", "entry"],
+	"fields": [
+		{ "name": "id", "type": "integer", "label": "Resource ID", "required": true },
+		{ "name": "name", "type": "string", "label": "Resource name", "required": true },
+		{ "name": "type_id", "type": "integer", "label": "Resource type ID", "required": false },
+		{ "name": "quota", "type": "integer", "label": "Resource quota", "required": false },
+		{ "name": "used", "type": "integer", "label": "Used capacity", "required": false }
+	],
+	"joins": [
+		{
+			"targetTable": "base3system_sysentry",
+			"on": { "base3system_entryresource.id": "base3system_sysentry.id" },
+			"type": "INNER",
+			"meta": { "default": true }
+		}
+	],
+	"defaultFilters": [],
+	"position": { "x": 0, "y": 0 }
+}
+

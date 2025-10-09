@@ -1,0 +1,27 @@
+{
+	"name": "base3system_entrydate",
+	"label": "XRM Data Date",
+	"description": "Event or date-related data records for XRM entries",
+	"domain": "xrm",
+	"category": "data",
+	"tags": ["date", "event", "calendar", "entry"],
+	"fields": [
+		{ "name": "id", "type": "integer", "label": "Date ID", "required": true },
+		{ "name": "start", "type": "datetime", "label": "Start date and time", "required": false },
+		{ "name": "end", "type": "datetime", "label": "End date and time", "required": false },
+		{ "name": "allday", "type": "boolean", "label": "All-day event", "required": false },
+		{ "name": "name", "type": "string", "label": "Event name", "required": true },
+		{ "name": "description", "type": "text", "label": "Event description", "required": false }
+	],
+	"joins": [
+		{
+			"targetTable": "base3system_sysentry",
+			"on": { "base3system_entrydate.id": "base3system_sysentry.id" },
+			"type": "INNER",
+			"meta": { "default": true }
+		}
+	],
+	"defaultFilters": [],
+	"position": { "x": 0, "y": 0 }
+}
+

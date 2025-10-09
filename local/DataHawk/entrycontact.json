@@ -1,0 +1,36 @@
+{
+	"name": "base3system_entrycontact",
+	"label": "XRM Data Contact",
+	"description": "Contact data records for XRM entries",
+	"domain": "xrm",
+	"category": "data",
+	"tags": ["contact", "person", "communication", "entry"],
+	"fields": [
+		{ "name": "id", "type": "integer", "label": "Contact ID", "required": true },
+		{ "name": "gender", "type": "string", "label": "Gender", "required": false },
+		{ "name": "title", "type": "string", "label": "Title", "required": false },
+		{ "name": "firstname", "type": "string", "label": "First name", "required": false },
+		{ "name": "lastname", "type": "string", "label": "Last name", "required": false },
+		{ "name": "nickname", "type": "string", "label": "Nickname", "required": false },
+		{ "name": "phone", "type": "string", "label": "Phone (private)", "required": false },
+		{ "name": "phonework", "type": "string", "label": "Phone (work)", "required": false },
+		{ "name": "mobile", "type": "string", "label": "Mobile phone", "required": false },
+		{ "name": "email1", "type": "string", "label": "Email address 1", "required": false },
+		{ "name": "email2", "type": "string", "label": "Email address 2", "required": false },
+		{ "name": "email3", "type": "string", "label": "Email address 3", "required": false },
+		{ "name": "fax", "type": "string", "label": "Fax number", "required": false },
+		{ "name": "dateofbirth", "type": "date", "label": "Date of birth", "required": false },
+		{ "name": "description", "type": "text", "label": "Description", "required": false }
+	],
+	"joins": [
+		{
+			"targetTable": "base3system_sysentry",
+			"on": { "base3system_entrycontact.id": "base3system_sysentry.id" },
+			"type": "INNER",
+			"meta": { "default": true }
+		}
+	],
+	"defaultFilters": [],
+	"position": { "x": 0, "y": 0 }
+}
+

@@ -1,0 +1,23 @@
+{
+	"name": "base3system_entrynote",
+	"label": "XRM Data Note",
+	"description": "Note and memo data records for XRM entries",
+	"domain": "xrm",
+	"category": "data",
+	"tags": ["note", "text", "memo", "entry"],
+	"fields": [
+		{ "name": "id", "type": "integer", "label": "Note ID", "required": true },
+		{ "name": "note", "type": "text", "label": "Note text", "required": true }
+	],
+	"joins": [
+		{
+			"targetTable": "base3system_sysentry",
+			"on": { "base3system_entrynote.id": "base3system_sysentry.id" },
+			"type": "INNER",
+			"meta": { "default": true }
+		}
+	],
+	"defaultFilters": [],
+	"position": { "x": 0, "y": 0 }
+}
+

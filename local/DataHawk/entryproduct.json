@@ -1,0 +1,27 @@
+{
+	"name": "base3system_entryproduct",
+	"label": "XRM Data Product",
+	"description": "Product and item data records for XRM entries",
+	"domain": "xrm",
+	"category": "data",
+	"tags": ["product", "item", "catalog", "entry"],
+	"fields": [
+		{ "name": "id", "type": "integer", "label": "Product ID", "required": true },
+		{ "name": "code", "type": "string", "label": "Product code", "required": false },
+		{ "name": "name", "type": "string", "label": "Product name", "required": true },
+		{ "name": "description", "type": "text", "label": "Product description", "required": false },
+		{ "name": "price", "type": "decimal", "label": "Product price", "required": false },
+		{ "name": "weight", "type": "float", "label": "Product weight", "required": false }
+	],
+	"joins": [
+		{
+			"targetTable": "base3system_sysentry",
+			"on": { "base3system_entryproduct.id": "base3system_sysentry.id" },
+			"type": "INNER",
+			"meta": { "default": true }
+		}
+	],
+	"defaultFilters": [],
+	"position": { "x": 0, "y": 0 }
+}
+
