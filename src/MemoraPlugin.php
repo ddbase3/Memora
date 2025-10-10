@@ -9,7 +9,7 @@ use DataHawk\Api\IReportQueryService;
 use DataHawk\Api\IReportSchemaProvider;
 use Memora\DataHawk\MemoraReportSchemaProvider;
 use Memora\Service\MemoraEntityDataService;
-use ResourceApi\Api\IEntityDataService;
+use ResourceFoundation\Api\IEntityDataService;
 
 class MemoraPlugin implements IPlugin, ICheck {
 
@@ -34,7 +34,7 @@ class MemoraPlugin implements IPlugin, ICheck {
 
 	public function checkDependencies() {
 		return array(
-			'resourceapiplugin_installed' => $this->container->get('resourceapiplugin') ? 'Ok' : 'resourceapiplugin not installed',
+			'resourcefoundationplugin_installed' => $this->container->get('resourcefoundationplugin') ? 'Ok' : 'resourcefoundationplugin not installed',
 			'datahawkplugin_installed' => $this->container->get('datahawkplugin') ? 'Ok' : 'datahawkplugin not installed'
 		);
 	}

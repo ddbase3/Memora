@@ -1,6 +1,6 @@
 # Memora
 
-**Memora** is a modular XRM/CRM backend for the BASE3 framework and offers a knowledge graph. It provides a unified data layer for managing entities, relationships, metadata, and permissions. Built on **ResourceApi**, it enables flexible data structures and consistent access across different modules and extensions.
+**Memora** is a modular XRM/CRM backend for the BASE3 framework and offers a knowledge graph. It provides a unified data layer for managing entities, relationships, metadata, and permissions. Built on **ResourceFoundation**, it enables flexible data structures and consistent access across different modules and extensions.
 
 ---
 
@@ -20,13 +20,13 @@ Memora acts as the central data and relationship manager for BASE3-based systems
 
 ## Architecture
 
-Memora builds on the BASE3 **ResourceApi** to handle storage and relationships, and integrates seamlessly with:
+Memora builds on the BASE3 **ResourceFoundation** to handle storage and relationships, and integrates seamlessly with:
 
-| Layer            | Purpose                                           |
-| ---------------- | ------------------------------------------------- |
-| **ResourceApi**  | Core entity and file abstraction layer            |
-| **ReportApi**    | Data analysis, visualization, and reporting       |
-| **AssistentApi** | AI-assisted workflows and automation (MissionBay) |
+| Layer                   | Purpose                                           |
+| ----------------------- | ------------------------------------------------- |
+| **ResourceFoundation**  | Core entity and file abstraction layer            |
+| **ReportFoundation**    | Data analysis, visualization, and reporting       |
+| **AssistentFoundation** | AI-assisted workflows and automation (MissionBay) |
 
 This modular structure ensures that Memora can act as both a standalone XRM system or as a backend service for other BASE3 plugins.
 
@@ -35,7 +35,7 @@ This modular structure ensures that Memora can act as both a standalone XRM syst
 ## Example Usage
 
 ```php
-use ResourceApi\Api\IEntityDataService;
+use ResourceFoundation\Api\IEntityDataService;
 
 // get service
 $memora = $container->get(IEntityDataService::class);
@@ -54,7 +54,7 @@ $memora->saveEntry($entity);
 
 Memora exposes its functionality through multiple interfaces:
 
-* **ResourceApi** for generic data access
+* **ResourceFoundation** for generic data access
 * **WebDAV adapters** for file-based access (Nextcloud, ILIAS)
 * **MissionBay Nodes** for AI or automation-driven flows
 * **ReportApi connectors** for reporting and dashboards

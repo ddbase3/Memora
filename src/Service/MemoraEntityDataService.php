@@ -2,7 +2,7 @@
 
 namespace Memora\Service;
 
-use ResourceApi\Api\IEntityDataService;
+use ResourceFoundation\Api\IEntityDataService;
 use DataHawk\Api\IReportQueryService;
 
 class MemoraEntityDataService implements IEntityDataService {
