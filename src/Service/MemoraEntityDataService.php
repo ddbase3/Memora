@@ -51,24 +51,83 @@ class MemoraEntityDataService implements IEntityDataService {
 
 		// Filter by type
 		if (!empty($options["type"])) {
+			$types = is_array($options["type"]) ? $options["type"] : [$options["type"]];
 			$where[] = [
 				"type" => "op",
-				"operator" => "=",
+				"operator" => count($types) === 1 ? "=" : "IN",
 				"params" => [
 					[ "type" => "fld", "table" => "base3system_systype", "field" => "alias", "variant" => "required" ],
-					$options["type"]
+					count($types) === 1 ? $types[0] : $types
 				]
 			];
 		}
 
-		// Filter by tag
-		if (!empty($options["tag"])) {
-			$tags = is_array($options["tag"]) ? $options["tag"] : [$options["tag"]];
+		// Filter by alloc (AND)
+		if (!empty($options["alloc"])) {
+			$peers = is_array($options["alloc"]) ? $options["alloc"] : [$options["alloc"]];
+			foreach ($peers as $i => $peerId) {
+				$where[] = [
+					"type" => "op",
+					"operator" => "=",
+					"params" => [
+						[ "type" => "fld", "table" => "base3system_sysallocview", "tablealias" => "alloc" . $i, "field" => "peer_id", "variant" => "optional" ],
+						$peerId
+					]
+				];
+			}
+		}
+
+		// Filter by inalloc (OR) / excludealloc (NOT)
+		foreach (['inalloc' => 'IN', 'excludealloc' => 'NOT IN'] as $key => $operator) {
+			if (empty($options[$key])) continue;
+			$peers = is_array($options[$key]) ? $options[$key] : [$options[$key]];
+
 			$where[] = [
 				"type" => "op",
-				"operator" => "IN",
+				"operator" => $operator,
 				"params" => [
-					[ "type" => "fld", "table" => "base3system_systag", "field" => "tag", "variant" => "optional" ],
+					[ "type" => "fld", "table" => "base3system_sysallocview", "field" => "peer_id" ],
+					$peers
+				]
+			];
+		}
+
+		// Filter by tag (AND)
+		if (!empty($options["tag"])) {
+			$tags = is_array($options["tag"]) ? $options["tag"] : [$options["tag"]];
+			foreach ($tags as $i => $tag) {
+				$where[] = [
+					"type" => "op",
+					"operator" => "=",
+					"params" => [
+						[
+							"type" => "fld",
+							"table" => "base3system_systag",
+							"tablealias" => "tag" . $i,
+							"field" => "tag",
+							"variant" => "required"
+						],
+						$tag
+					]
+				];
+			}
+		}
+
+		// Filter by intag (OR) / excludetag (NOT)
+		foreach (['intag' => 'IN', 'excludetag' => 'NOT IN'] as $key => $operator) {
+			if (empty($options[$key])) continue;
+			$tags = is_array($options[$key]) ? $options[$key] : [$options[$key]];
+
+			$where[] = [
+				"type" => "op",
+				"operator" => $operator,
+				"params" => [
+					[
+						"type" => "fld",
+						"table" => "base3system_systag",
+						"field" => "tag",
+						"variant" => "optional"
+					],
 					$tags
 				]
 			];
@@ -78,11 +137,7 @@ class MemoraEntityDataService implements IEntityDataService {
 		if (count($where) === 1) {
 			$query["where"] = $where[0];
 		} elseif (count($where) > 1) {
-			$query["where"] = [
-				"type" => "op",
-				"operator" => "AND",
-				"params" => $where
-			];
+			$query["where"] = [ "type" => "op", "operator" => "AND", "params" => $where ];
 		}
 
 		// --- ORDER ---

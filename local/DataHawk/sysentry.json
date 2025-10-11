@@ -17,10 +17,13 @@
 		{ "name": "changed", "type": "datetime", "label": "Date and time of last change", "required": true }
 	],
 	"joins": [
-		{ "targetTable": "base3system_sysalloc", "on": { "base3system_sysentry.id": "base3system_sysalloc.entry_id_1" }, "type": "LEFT", "meta": { "default": true } },
-		{ "targetTable": "base3system_sysalloc", "on": { "base3system_sysentry.id": "base3system_sysalloc.entry_id_2" }, "type": "LEFT", "meta": { "default": true } },
+		{ "targetTable": "base3system_sysalloc", "on": { "base3system_sysentry.id": "base3system_sysalloc.entry_id_1" }, "type": "INNER", "meta": { "default": true } },
+		{ "targetTable": "base3system_sysalloc", "on": { "base3system_sysentry.id": "base3system_sysalloc.entry_id_2" }, "type": "INNER", "meta": { "default": true } },
+		{ "targetTable": "base3system_sysallocview", "on": { "base3system_sysentry.id": "base3system_sysallocview.entry_id" }, "type": "INNER", "meta": { "default": true } },
+		{ "targetTable": "base3system_sysallocview", "on": { "base3system_sysentry.id": "base3system_sysallocview.entry_id" }, "type": "LEFT" },
 		{ "targetTable": "base3system_sysname", "on": { "base3system_sysentry.id": "base3system_sysname.entry_id" }, "type": "LEFT", "meta": { "default": true } },
-		{ "targetTable": "base3system_systag", "on": { "base3system_sysentry.id": "base3system_systag.entry_id" }, "type": "LEFT", "meta": { "default": true } },
+		{ "targetTable": "base3system_systag", "on": { "base3system_sysentry.id": "base3system_systag.entry_id" }, "type": "INNER", "meta": { "default": true } },
+		{ "targetTable": "base3system_systag", "on": { "base3system_sysentry.id": "base3system_systag.entry_id" }, "type": "LEFT" },
 		{ "targetTable": "base3system_systype", "on": { "base3system_sysentry.type_id": "base3system_systype.id" }, "type": "INNER", "meta": { "default": true } },
 
 		{ "targetTable": "base3system_entryaccount", "on": { "base3system_sysentry.id": "base3system_entryaccount.id" }, "type": "INNER", "meta": { "default": true } },
@@ -40,6 +43,6 @@
 		{ "targetTable": "base3system_entrytext", "on": { "base3system_sysentry.id": "base3system_entrytext.id" }, "type": "INNER", "meta": { "default": true } }
 	],
 	"defaultFilters": [],
-	"position": { "x": 400, "y": 80 }
+	"position": { "x": 490, "y": 80 }
 }
 
