@@ -105,8 +105,9 @@ class MemoraEntityDataService implements IEntityDataService {
 	}
 
 	public function getEntry(int|string $id, array $options = []): ?array {
-		// TODO implement
-		return null;
+		$options['entry'] = $id;
+		$entries = $this->getEntries($options);
+		return $entries[0] ?? null;
 	}
 
 	public function saveEntry(array $data): int|string {
