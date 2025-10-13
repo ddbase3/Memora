@@ -15,23 +15,36 @@ class MemoraEntityDataService implements IEntityDataService {
 		$query = [
 			"type" => "select",
 			"fields" => [
-				[
-					"element" => [ "type" => "fld", "table" => "base3system_sysentry", "field" => "id" ],
-					"alias" => "id"
-				],
-				[
-					"element" => [ "type" => "fld", "table" => "base3system_sysname", "field" => "name" ],
-					"alias" => "name"
-				],
-				[
-					"element" => [ "type" => "fld", "table" => "base3system_systype", "field" => "alias" ],
-					"alias" => "type_alias"
-				]
+				[ "element" => [ "type" => "fld", "table" => "base3system_sysentry", "field" => "id" ], "alias" => "id" ],
+				[ "element" => [ "type" => "fld", "table" => "base3system_sysentry", "field" => "archive" ], "alias" => "archive" ],
+				[ "element" => [ "type" => "fld", "table" => "base3system_sysentry", "field" => "dellock" ], "alias" => "dellock" ],
+				[ "element" => [ "type" => "fld", "table" => "base3system_sysentry", "field" => "created" ], "alias" => "created" ],
+				[ "element" => [ "type" => "fld", "table" => "base3system_sysentry", "field" => "changed" ], "alias" => "changed" ],
+				[ "element" => [ "type" => "fld", "table" => "base3system_systype", "field" => "alias" ], "alias" => "type_alias" ]
 			],
 			"table" => "base3system_sysentry",
 			"where" => null,
 			"order_by" => [],
 		];
+
+		// Load name
+		if (!empty($options["loadname"])) {
+			$query["fields"][] = [ "element" => [ "type" => "fld", "table" => "base3system_sysname", "field" => "name" ], "alias" => "name" ];
+		}
+
+		// Load tags (as comma-separated or JSON string)
+		if (!empty($options["loadtags"])) {
+			$query["fields"][] = [
+				"element" => [
+					"type" => "fn",
+					"function" => "GROUP_CONCAT",
+					"params" => [
+						[ "type" => "fld", "table" => "base3system_systag", "field" => "tag", "variant" => "optional" ]
+					]
+				],
+				"alias" => "tags"
+			];
+		}
 
 		// --- dynamic WHERE conditions ---
 		$where = [];
@@ -152,6 +165,14 @@ class MemoraEntityDataService implements IEntityDataService {
 			if (!empty($options["limitoffset"])) {
 				$query["offset"] = (int)$options["limitoffset"];
 			}
+		}
+
+		// --- GROUP BY entry_id if aggregates are used ---
+		$needsGrouping = !empty($options["loadtags"]);
+		if ($needsGrouping) {
+			$query["group_by"] = [
+				[ "type" => "fld", "table" => "base3system_sysentry", "field" => "id" ]
+			];
 		}
 
 		// --- Execute ---
