@@ -4,180 +4,67 @@ namespace Memora\Service;
 
 use ResourceFoundation\Api\IEntityDataService;
 use DataHawk\Api\IReportQueryService;
+use Base3\Api\IClassMap;
+use Memora\Api\IEntryQueryExtension;
 
 class MemoraEntityDataService implements IEntityDataService {
 
-	public function __construct(private readonly IReportQueryService $dataqueryservice) {}
-
-	// Implementation of IEntityDataService
+	public function __construct(
+		private readonly IReportQueryService $dataqueryservice,
+		private readonly IClassMap $classmap
+	) {}
 
 	public function getEntries(array $options = []): array {
+		// Base query structure
 		$query = [
-			"type" => "select",
-			"fields" => [
-				[ "element" => [ "type" => "fld", "table" => "base3system_sysentry", "field" => "id" ], "alias" => "id" ],
-				[ "element" => [ "type" => "fld", "table" => "base3system_sysentry", "field" => "archive" ], "alias" => "archive" ],
-				[ "element" => [ "type" => "fld", "table" => "base3system_sysentry", "field" => "dellock" ], "alias" => "dellock" ],
-				[ "element" => [ "type" => "fld", "table" => "base3system_sysentry", "field" => "created" ], "alias" => "created" ],
-				[ "element" => [ "type" => "fld", "table" => "base3system_sysentry", "field" => "changed" ], "alias" => "changed" ],
-				[ "element" => [ "type" => "fld", "table" => "base3system_systype", "field" => "alias" ], "alias" => "type_alias" ]
+			'type' => 'select',
+			'fields' => [
+				[ 'element' => [ 'type' => 'fld', 'table' => 'base3system_sysentry', 'field' => 'id' ], 'alias' => 'id' ],
+				[ 'element' => [ 'type' => 'fld', 'table' => 'base3system_sysentry', 'field' => 'archive' ], 'alias' => 'archive' ],
+				[ 'element' => [ 'type' => 'fld', 'table' => 'base3system_sysentry', 'field' => 'dellock' ], 'alias' => 'dellock' ],
+				[ 'element' => [ 'type' => 'fld', 'table' => 'base3system_sysentry', 'field' => 'created' ], 'alias' => 'created' ],
+				[ 'element' => [ 'type' => 'fld', 'table' => 'base3system_sysentry', 'field' => 'changed' ], 'alias' => 'changed' ]
 			],
-			"table" => "base3system_sysentry",
-			"where" => null,
-			"order_by" => [],
+			'table' => 'base3system_sysentry',
+			'where' => []
 		];
 
-		// Load name
-		if (!empty($options["loadname"])) {
-			$query["fields"][] = [ "element" => [ "type" => "fld", "table" => "base3system_sysname", "field" => "name" ], "alias" => "name" ];
+		// Load all available extensions
+		$extensions = $this->classmap->getInstancesByInterface(IEntryQueryExtension::class);
+		usort($extensions, fn($a, $b) => $a->getPriority() <=> $b->getPriority());
+
+		// Apply all applicable extensions to query
+		foreach ($extensions as $ext) {
+			if ($ext->isApplicable($options)) {
+				$query = $ext->applyToQuery($query, $options);
+			}
 		}
 
-		// Load tags (as comma-separated or JSON string)
-		if (!empty($options["loadtags"])) {
-			$query["fields"][] = [
-				"element" => [
-					"type" => "fn",
-					"function" => "GROUP_CONCAT",
-					"params" => [
-						[ "type" => "fld", "table" => "base3system_systag", "field" => "tag", "variant" => "optional" ]
-					]
-				],
-				"alias" => "tags"
-			];
-		}
-
-		// --- dynamic WHERE conditions ---
-		$where = [];
-
-		// Filter by entry ID(s)
-		if (!empty($options["entry"])) {
-			$ids = is_array($options["entry"]) ? $options["entry"] : [$options["entry"]];
-			$where[] = [
-				"type" => "op",
-				"operator" => "IN",
-				"params" => [
-					[ "type" => "fld", "table" => "base3system_sysentry", "field" => "id" ],
-					$ids
-				]
-			];
-		}
-
-		// Filter by type
-		if (!empty($options["type"])) {
-			$types = is_array($options["type"]) ? $options["type"] : [$options["type"]];
-			$where[] = [
-				"type" => "op",
-				"operator" => count($types) === 1 ? "=" : "IN",
-				"params" => [
-					[ "type" => "fld", "table" => "base3system_systype", "field" => "alias", "variant" => "required" ],
-					count($types) === 1 ? $types[0] : $types
-				]
-			];
-		}
-
-		// Filter by alloc (AND)
-		if (!empty($options["alloc"])) {
-			$peers = is_array($options["alloc"]) ? $options["alloc"] : [$options["alloc"]];
-			foreach ($peers as $i => $peerId) {
-				$where[] = [
-					"type" => "op",
-					"operator" => "=",
-					"params" => [
-						[ "type" => "fld", "table" => "base3system_sysallocview", "tablealias" => "alloc" . $i, "field" => "peer_id", "variant" => "optional" ],
-						$peerId
-					]
+		// Combine where clauses into AND structure
+		if (!empty($query['where']) && is_array($query['where'])) {
+			if (!isset($query['where']['type']) && count($query['where']) > 1) {
+				$query['where'] = [
+					'type' => 'op',
+					'operator' => 'AND',
+					'params' => $query['where']
 				];
+			} elseif (empty($query['where'])) {
+				unset($query['where']);
 			}
 		}
 
-		// Filter by inalloc (OR) / excludealloc (NOT)
-		foreach (['inalloc' => 'IN', 'excludealloc' => 'NOT IN'] as $key => $operator) {
-			if (empty($options[$key])) continue;
-			$peers = is_array($options[$key]) ? $options[$key] : [$options[$key]];
-
-			$where[] = [
-				"type" => "op",
-				"operator" => $operator,
-				"params" => [
-					[ "type" => "fld", "table" => "base3system_sysallocview", "field" => "peer_id" ],
-					$peers
-				]
-			];
-		}
-
-		// Filter by tag (AND)
-		if (!empty($options["tag"])) {
-			$tags = is_array($options["tag"]) ? $options["tag"] : [$options["tag"]];
-			foreach ($tags as $i => $tag) {
-				$where[] = [
-					"type" => "op",
-					"operator" => "=",
-					"params" => [
-						[
-							"type" => "fld",
-							"table" => "base3system_systag",
-							"tablealias" => "tag" . $i,
-							"field" => "tag",
-							"variant" => "required"
-						],
-						$tag
-					]
-				];
-			}
-		}
-
-		// Filter by intag (OR) / excludetag (NOT)
-		foreach (['intag' => 'IN', 'excludetag' => 'NOT IN'] as $key => $operator) {
-			if (empty($options[$key])) continue;
-			$tags = is_array($options[$key]) ? $options[$key] : [$options[$key]];
-
-			$where[] = [
-				"type" => "op",
-				"operator" => $operator,
-				"params" => [
-					[
-						"type" => "fld",
-						"table" => "base3system_systag",
-						"field" => "tag",
-						"variant" => "optional"
-					],
-					$tags
-				]
-			];
-		}
-
-		// Combine conditions
-		if (count($where) === 1) {
-			$query["where"] = $where[0];
-		} elseif (count($where) > 1) {
-			$query["where"] = [ "type" => "op", "operator" => "AND", "params" => $where ];
-		}
-
-		// --- ORDER ---
-		$query["order_by"][] = [
-			"element" => [ "type" => "fld", "table" => "base3system_sysentry", "field" => "id" ],
-			"direction" => $options["orderdir"] ?? "DESC"
-		];
-
-		// --- LIMIT ---
-		if (!empty($options["limitcount"])) {
-			$query["limit"] = (int)$options["limitcount"];
-			if (!empty($options["limitoffset"])) {
-				$query["offset"] = (int)$options["limitoffset"];
-			}
-		}
-
-		// --- GROUP BY entry_id if aggregates are used ---
-		$needsGrouping = !empty($options["loadtags"]);
-		if ($needsGrouping) {
-			$query["group_by"] = [
-				[ "type" => "fld", "table" => "base3system_sysentry", "field" => "id" ]
-			];
-		}
-
-		// --- Execute ---
+		// Execute query
 		$result = $this->dataqueryservice->executeQuery($query);
-		return $result->rows;
+		$rows = $result->rows ?? [];
+
+		// Process results via extensions
+		foreach ($extensions as $ext) {
+			if ($ext->isApplicable($options)) {
+				$rows = $ext->processResult($rows, $options);
+			}
+		}
+
+		return $rows;
 	}
 
 	public function getEntry(int|string $id, array $options = []): ?array {

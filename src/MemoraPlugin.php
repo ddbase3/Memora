@@ -3,6 +3,7 @@
 namespace Memora;
 
 use Base3\Api\ICheck;
+use Base3\Api\IClassMap;
 use Base3\Api\IContainer;
 use Base3\Api\IPlugin;
 use DataHawk\Api\IReportQueryService;
@@ -27,7 +28,7 @@ class MemoraPlugin implements IPlugin, ICheck {
 		$this->container
 			->set(self::getName(), $this, IContainer::SHARED)
 			->set(IReportSchemaProvider::class, fn($c) => new MemoraReportSchemaProvider, IContainer::SHARED)
-			->set(IEntityDataService::class, fn($c) => new MemoraEntityDataService($c->get(IReportQueryService::class)), IContainer::SHARED);
+			->set(IEntityDataService::class, fn($c) => new MemoraEntityDataService($c->get(IReportQueryService::class), $c->get(IClassMap::class)), IContainer::SHARED);
 	}
 
 	// Implementation of ICheck
