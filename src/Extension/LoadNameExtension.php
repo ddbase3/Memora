@@ -7,6 +7,8 @@ use Memora\Api\IEntryQueryExtension;
 
 class LoadNameExtension implements IEntryQueryExtension, ISortable {
 
+	// Implementation of IEntryQueryExtension
+
 	public function isApplicable(array $options): bool {
 		return !empty($options['loadname']);
 	}
@@ -29,6 +31,8 @@ class LoadNameExtension implements IEntryQueryExtension, ISortable {
 		// No postprocessing required for name loading
 		return $rows;
 	}
+
+	// Implementation of ISortable
 
 	public function getPriority(): int {
 		// Execute late, before grouping and after filters

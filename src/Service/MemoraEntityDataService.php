@@ -15,23 +15,17 @@ class MemoraEntityDataService implements IEntityDataService {
 	) {}
 
 	public function getEntries(array $options = []): array {
-		// Base query structure
-		$query = [
-			'type' => 'select',
-			'fields' => [
-				[ 'element' => [ 'type' => 'fld', 'table' => 'base3system_sysentry', 'field' => 'id' ], 'alias' => 'id' ],
-				[ 'element' => [ 'type' => 'fld', 'table' => 'base3system_sysentry', 'field' => 'archive' ], 'alias' => 'archive' ],
-				[ 'element' => [ 'type' => 'fld', 'table' => 'base3system_sysentry', 'field' => 'dellock' ], 'alias' => 'dellock' ],
-				[ 'element' => [ 'type' => 'fld', 'table' => 'base3system_sysentry', 'field' => 'created' ], 'alias' => 'created' ],
-				[ 'element' => [ 'type' => 'fld', 'table' => 'base3system_sysentry', 'field' => 'changed' ], 'alias' => 'changed' ]
-			],
-			'table' => 'base3system_sysentry',
-			'where' => []
-		];
-
 		// Load all available extensions
 		$extensions = $this->classmap->getInstancesByInterface(IEntryQueryExtension::class);
 		usort($extensions, fn($a, $b) => $a->getPriority() <=> $b->getPriority());
+
+		// Initialize minimal base query (extensions define structure)
+		$query = [
+			'type' => 'select',
+			'fields' => [],
+			'table' => null,
+			'where' => []
+		];
 
 		// Apply all applicable extensions to query
 		foreach ($extensions as $ext) {
@@ -40,7 +34,7 @@ class MemoraEntityDataService implements IEntityDataService {
 			}
 		}
 
-		// Combine where clauses into AND structure
+		// Combine where clauses into AND structure if needed
 		if (!empty($query['where']) && is_array($query['where'])) {
 			if (!isset($query['where']['type']) && count($query['where']) > 1) {
 				$query['where'] = [
@@ -83,3 +77,4 @@ class MemoraEntityDataService implements IEntityDataService {
 		return false;
 	}
 }
+
