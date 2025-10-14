@@ -17,14 +17,12 @@ class BaseFieldsExtension implements IEntryQueryExtension, ISortable {
 		$baseFields = [
 			[ 'element' => [ 'type' => 'fld', 'table' => 'base3system_sysentry', 'field' => 'id' ], 'alias' => 'id' ],
 			[ 'element' => [ 'type' => 'fld', 'table' => 'base3system_sysentry', 'field' => 'uuid' ], 'alias' => 'uuid' ],
-			[ 'element' => [ 'type' => 'fld', 'table' => 'base3system_sysentry', 'field' => 'type_id' ], 'alias' => 'type_id' ],
 			[ 'element' => [ 'type' => 'fld', 'table' => 'base3system_sysentry', 'field' => 'archive' ], 'alias' => 'archive' ],
 			[ 'element' => [ 'type' => 'fld', 'table' => 'base3system_sysentry', 'field' => 'dellock' ], 'alias' => 'dellock' ],
 			[ 'element' => [ 'type' => 'fld', 'table' => 'base3system_sysentry', 'field' => 'connections' ], 'alias' => 'connections' ],
 			[ 'element' => [ 'type' => 'fld', 'table' => 'base3system_sysentry', 'field' => 'etag' ], 'alias' => 'etag' ],
 			[ 'element' => [ 'type' => 'fld', 'table' => 'base3system_sysentry', 'field' => 'created' ], 'alias' => 'created' ],
-			[ 'element' => [ 'type' => 'fld', 'table' => 'base3system_sysentry', 'field' => 'changed' ], 'alias' => 'changed' ],
-			[ 'element' => [ 'type' => 'fld', 'table' => 'base3system_systype', 'field' => 'alias', 'variant' => 'optional' ], 'alias' => 'type_alias' ]
+			[ 'element' => [ 'type' => 'fld', 'table' => 'base3system_sysentry', 'field' => 'changed' ], 'alias' => 'changed' ]
 		];
 
 		// Merge base fields only if not already defined
