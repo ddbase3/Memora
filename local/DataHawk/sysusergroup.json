@@ -1,0 +1,29 @@
+{
+	"name": "base3system_sysusergroup",
+	"label": "User-Group Relation",
+	"description": "Mapping table between users and groups",
+	"domain": "xrm",
+	"category": "access",
+	"tags": ["user", "group", "relation"],
+	"fields": [
+		{ "name": "user_id", "type": "integer", "label": "User ID", "required": true },
+		{ "name": "group_id", "type": "integer", "label": "Group ID", "required": true }
+	],
+	"joins": [
+		{
+			"targetTable": "base3system_sysuser",
+			"on": { "base3system_sysusergroup.user_id": "base3system_sysuser.id" },
+			"type": "INNER",
+			"meta": { "default": true }
+		},
+		{
+			"targetTable": "base3system_sysgroup",
+			"on": { "base3system_sysusergroup.group_id": "base3system_sysgroup.id" },
+			"type": "INNER",
+			"meta": { "default": true }
+		}
+	],
+	"defaultFilters": [],
+	"position": { "x": 880, "y": 260 }
+}
+

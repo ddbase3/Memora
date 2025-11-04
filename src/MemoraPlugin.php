@@ -7,9 +7,11 @@ use Base3\Api\IClassMap;
 use Base3\Api\IContainer;
 use Base3\Api\IPlugin;
 use DataHawk\Api\IReportQueryService;
+use DataHawk\Api\IReportQueryCompiler;
 use DataHawk\Api\IReportSchemaProvider;
 use Memora\DataHawk\MemoraReportSchemaProvider;
 use Memora\Service\MemoraEntityDataService;
+use Memora\Service\MemoraReportQueryService;
 use ResourceFoundation\Api\IEntityDataService;
 
 class MemoraPlugin implements IPlugin, ICheck {
@@ -26,9 +28,28 @@ class MemoraPlugin implements IPlugin, ICheck {
 
 	public function init() {
 		$this->container
+
 			->set(self::getName(), $this, IContainer::SHARED)
-			->set(IReportSchemaProvider::class, fn($c) => new MemoraReportSchemaProvider, IContainer::SHARED)
-			->set(IEntityDataService::class, fn($c) => new MemoraEntityDataService($c->get(IReportQueryService::class), $c->get(IClassMap::class)), IContainer::SHARED);
+
+			->set(
+				IReportSchemaProvider::class,
+				fn($c) => new MemoraReportSchemaProvider,
+				IContainer::SHARED)
+
+			->set(
+				IReportQueryService::class,
+                                fn($c) => new MemoraReportQueryService(
+                                        $c->get(IReportSchemaProvider::class),
+                                        $c->get(IReportQueryCompiler::class),
+                                        $c),
+				IContainer::SHARED)
+
+			->set(
+				IEntityDataService::class,
+				fn($c) => new MemoraEntityDataService(
+					$c->get(IReportQueryService::class),
+					$c->get(IClassMap::class)),
+				IContainer::SHARED);
 	}
 
 	// Implementation of ICheck

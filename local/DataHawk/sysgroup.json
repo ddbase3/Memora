@@ -1,0 +1,31 @@
+{
+	"name": "base3system_sysgroup",
+	"label": "System Group",
+	"description": "Groups for access control",
+	"domain": "xrm",
+	"category": "access",
+	"tags": ["group", "access", "role"],
+	"fields": [
+		{ "name": "id", "type": "integer", "label": "Group ID", "required": true },
+		{ "name": "name", "type": "string", "label": "Group Name", "required": true },
+		{ "name": "info", "type": "text", "label": "Group Information" },
+		{ "name": "archive", "type": "boolean", "label": "Group Archived", "required": true }
+	],
+	"joins": [
+		{
+			"targetTable": "base3system_sysgroupaccess",
+			"on": { "base3system_sysgroup.id": "base3system_sysgroupaccess.group_id" },
+			"type": "INNER",
+			"meta": { "default": true }
+		},
+		{
+			"targetTable": "base3system_sysusergroup",
+			"on": { "base3system_sysgroup.id": "base3system_sysusergroup.group_id" },
+			"type": "INNER",
+			"meta": { "default": true }
+		}
+	],
+	"defaultFilters": [],
+	"position": { "x": 760, "y": 160 }
+}
+

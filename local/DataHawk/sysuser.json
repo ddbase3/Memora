@@ -1,0 +1,39 @@
+{
+	"name": "base3system_sysuser",
+	"label": "System User",
+	"description": "Users of the XRM system",
+	"domain": "xrm",
+	"category": "access",
+	"tags": ["user", "account", "member"],
+	"fields": [
+		{ "name": "id", "type": "integer", "label": "User ID", "required": true },
+		{ "name": "name", "type": "string", "label": "Username", "required": true },
+		{ "name": "fullname", "type": "string", "label": "Full Name" },
+		{ "name": "email", "type": "string", "label": "E-Mail Address" },
+		{ "name": "lang_id", "type": "integer", "label": "Language ID" },
+		{ "name": "mode", "type": "integer", "label": "User Mode", "required": true }
+	],
+	"joins": [
+		{
+			"targetTable": "base3system_syslang",
+			"on": { "base3system_sysuser.lang_id": "base3system_syslang.id" },
+			"type": "INNER",
+			"meta": { "default": true }
+		},
+		{
+			"targetTable": "base3system_sysuseraccess",
+			"on": { "base3system_sysuser.id": "base3system_sysuseraccess.user_id" },
+			"type": "INNER",
+			"meta": { "default": true }
+		},
+		{
+			"targetTable": "base3system_sysusergroup",
+			"on": { "base3system_sysuser.id": "base3system_sysusergroup.user_id" },
+			"type": "INNER",
+			"meta": { "default": true }
+		}
+	],
+	"defaultFilters": [],
+	"position": { "x": 700, "y": 320 }
+}
+

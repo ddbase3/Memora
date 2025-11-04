@@ -14,10 +14,11 @@ class FilterByAllocExtension implements IEntryQueryExtension, ISortable {
 	}
 
 	public function applyToQuery(array $query, array $options): array {
-		// --- alloc: AND-filter for each peer_id ---
+
+		// --- alloc: AND filter (multiple entries all required) ---
 		if (!empty($options['alloc'])) {
 			$peers = is_array($options['alloc']) ? $options['alloc'] : [$options['alloc']];
-			foreach ($peers as $i => $peerId) {
+			foreach ($peers as $peerId) {
 				$query['where'][] = [
 					'type' => 'op',
 					'operator' => '=',
@@ -25,9 +26,8 @@ class FilterByAllocExtension implements IEntryQueryExtension, ISortable {
 						[
 							'type' => 'fld',
 							'table' => 'base3system_sysallocview',
-							'tablealias' => 'alloc' . $i,
 							'field' => 'peer_id',
-							'variant' => 'optional'
+							'variant' => 'optional' // ensures LEFT JOIN, no record loss
 						],
 						$peerId
 					]
@@ -80,8 +80,7 @@ class FilterByAllocExtension implements IEntryQueryExtension, ISortable {
 	}
 
 	public function getPriority(): int {
-		// Execute after basic filters, before grouping
+		// Execute after base filters, before grouping
 		return 120;
 	}
 }
-

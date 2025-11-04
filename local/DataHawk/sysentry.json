@@ -40,7 +40,10 @@
 		{ "targetTable": "base3system_entryresource", "on": { "base3system_sysentry.id": "base3system_entryresource.id" }, "type": "INNER", "meta": { "default": true } },
 		{ "targetTable": "base3system_entrytag", "on": { "base3system_sysentry.id": "base3system_entrytag.id" }, "type": "INNER", "meta": { "default": true } },
 		{ "targetTable": "base3system_entrytask", "on": { "base3system_sysentry.id": "base3system_entrytask.id" }, "type": "INNER", "meta": { "default": true } },
-		{ "targetTable": "base3system_entrytext", "on": { "base3system_sysentry.id": "base3system_entrytext.id" }, "type": "INNER", "meta": { "default": true } }
+		{ "targetTable": "base3system_entrytext", "on": { "base3system_sysentry.id": "base3system_entrytext.id" }, "type": "INNER", "meta": { "default": true } },
+
+		{ "targetTable": "base3system_sysgroupaccess", "on": { "base3system_sysentry.id": "base3system_sysgroupaccess.entry_id" }, "type": "INNER", "meta": { "default": true } },
+		{ "targetTable": "base3system_sysuseraccess", "on": { "base3system_sysentry.id": "base3system_sysuseraccess.entry_id" }, "type": "INNER", "meta": { "default": true } }
 	],
 	"defaultFilters": [],
 	"position": { "x": 490, "y": 80 }
