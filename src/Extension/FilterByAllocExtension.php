@@ -26,6 +26,7 @@ class FilterByAllocExtension implements IEntryQueryExtension, ISortable {
 						[
 							'type' => 'fld',
 							'table' => 'base3system_sysallocview',
+							'tablealias' => 'filterbyalloc',
 							'field' => 'peer_id',
 							'variant' => 'optional' // ensures LEFT JOIN, no record loss
 						],
@@ -45,6 +46,7 @@ class FilterByAllocExtension implements IEntryQueryExtension, ISortable {
 					[
 						'type' => 'fld',
 						'table' => 'base3system_sysallocview',
+						'tablealias' => 'filterbyalloc',
 						'field' => 'peer_id',
 						'variant' => 'optional'
 					],
@@ -63,6 +65,7 @@ class FilterByAllocExtension implements IEntryQueryExtension, ISortable {
 					[
 						'type' => 'fld',
 						'table' => 'base3system_sysallocview',
+						'tablealias' => 'filterbyalloc',
 						'field' => 'peer_id',
 						'variant' => 'optional'
 					],

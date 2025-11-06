@@ -43,7 +43,9 @@
 		{ "targetTable": "base3system_entrytext", "on": { "base3system_sysentry.id": "base3system_entrytext.id" }, "type": "INNER", "meta": { "default": true } },
 
 		{ "targetTable": "base3system_sysgroupaccess", "on": { "base3system_sysentry.id": "base3system_sysgroupaccess.entry_id" }, "type": "INNER", "meta": { "default": true } },
-		{ "targetTable": "base3system_sysuseraccess", "on": { "base3system_sysentry.id": "base3system_sysuseraccess.entry_id" }, "type": "INNER", "meta": { "default": true } }
+		{ "targetTable": "base3system_sysuseraccess", "on": { "base3system_sysentry.id": "base3system_sysuseraccess.entry_id" }, "type": "INNER", "meta": { "default": true } },
+		{ "targetTable": "base3system_syslog", "on": { "base3system_sysentry.id": "base3system_syslog.entry_id" }, "type": "INNER", "meta": { "default": true } },
+		{ "targetTable": "base3system_syscomment", "on": { "base3system_sysentry.id": "base3system_syscomment.entry_id" }, "type": "INNER", "meta": { "default": true } }
 	],
 	"defaultFilters": [],
 	"position": { "x": 490, "y": 80 }

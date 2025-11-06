@@ -1,0 +1,32 @@
+{
+	"name": "base3system_syslog",
+	"label": "System Log",
+	"description": "Records of actions performed on entries by users",
+	"domain": "xrm",
+	"category": "system",
+	"tags": ["log", "history", "audit", "entry", "user"],
+	"fields": [
+		{ "name": "id", "type": "integer", "label": "Log ID", "required": true },
+		{ "name": "entry_id", "type": "integer", "label": "Entry ID", "required": true },
+		{ "name": "user_id", "type": "integer", "label": "User ID", "required": true },
+		{ "name": "action", "type": "string", "label": "Action", "required": true },
+		{ "name": "datetime", "type": "datetime", "label": "Date and time of action", "required": true }
+	],
+	"joins": [
+		{
+			"targetTable": "base3system_sysentry",
+			"on": { "base3system_syslog.entry_id": "base3system_sysentry.id" },
+			"type": "INNER",
+			"meta": { "default": true }
+		},
+		{
+			"targetTable": "base3system_sysuser",
+			"on": { "base3system_syslog.user_id": "base3system_sysuser.id" },
+			"type": "INNER",
+			"meta": { "default": true }
+		}
+	],
+	"defaultFilters": [],
+	"position": { "x": 900, "y": 400 }
+}
+

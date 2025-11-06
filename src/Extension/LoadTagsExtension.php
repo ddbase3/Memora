@@ -38,7 +38,7 @@ class LoadTagsExtension implements IEntryQueryExtension, ISortable {
 		// Split comma-separated tags into arrays
 		foreach ($rows as &$row) {
 			if (isset($row['tags']) && is_string($row['tags'])) {
-				$row['tags'] = array_filter(array_map('trim', explode(',', $row['tags'])));
+				$row['tags'] = array_unique(array_filter(array_map('trim', explode(',', $row['tags']))));
 			}
 		}
 		unset($row);

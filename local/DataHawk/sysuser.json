@@ -31,6 +31,18 @@
 			"on": { "base3system_sysuser.id": "base3system_sysusergroup.user_id" },
 			"type": "INNER",
 			"meta": { "default": true }
+		},
+		{
+			"targetTable": "base3system_syslog",
+			"on": { "base3system_sysuser.id": "base3system_syslog.user_id" },
+			"type": "INNER",
+			"meta": { "default": true }
+		},
+		{
+			"targetTable": "base3system_syscomment",
+			"on": { "base3system_sysuser.id": "base3system_syscomment.user_id" },
+			"type": "INNER",
+			"meta": { "default": true }
 		}
 	],
 	"defaultFilters": [],

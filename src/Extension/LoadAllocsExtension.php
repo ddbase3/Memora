@@ -21,6 +21,7 @@ class LoadAllocsExtension implements IEntryQueryExtension, ISortable {
 					[
 						'type' => 'fld',
 						'table' => 'base3system_sysallocview',
+						'tablealias' => 'loadallocs',
 						'field' => 'peer_id',
 						'variant' => 'optional'
 					]
