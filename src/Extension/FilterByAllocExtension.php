@@ -3,9 +3,9 @@
 namespace Memora\Extension;
 
 use Base3\Api\ISortable;
-use Memora\Api\IEntryQueryExtension;
+use Memora\Api\IMemoraQueryExtension;
 
-class FilterByAllocExtension implements IEntryQueryExtension, ISortable {
+class FilterByAllocExtension implements IMemoraQueryExtension, ISortable {
 
 	public function isApplicable(array $options): bool {
 		return !empty($options['alloc'])

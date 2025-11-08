@@ -3,9 +3,9 @@
 namespace Memora\Extension;
 
 use Base3\Api\ISortable;
-use Memora\Api\IEntryQueryExtension;
+use Memora\Api\IMemoraQueryExtension;
 
-class BaseFieldsExtension implements IEntryQueryExtension, ISortable {
+class BaseFieldsExtension implements IMemoraQueryExtension, ISortable {
 
 	public function isApplicable(array $options): bool {
 		// Always applicable, defines the base fields of each entry

@@ -3,11 +3,11 @@
 namespace Memora\Extension;
 
 use Base3\Api\ISortable;
-use Memora\Api\IEntryQueryExtension;
+use Memora\Api\IMemoraQueryExtension;
 
-class FilterByTypeExtension implements IEntryQueryExtension, ISortable {
+class FilterByTypeExtension implements IMemoraQueryExtension, ISortable {
 
-	// Implementation of IEntryQueryExtension
+	// Implementation of IMemoraQueryExtension
 
 	public function isApplicable(array $options): bool {
 		return !empty($options['type']);

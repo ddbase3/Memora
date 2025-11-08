@@ -3,9 +3,9 @@
 namespace Memora\Extension;
 
 use Base3\Api\ISortable;
-use Memora\Api\IEntryQueryExtension;
+use Memora\Api\IMemoraQueryExtension;
 
-class OrderExtension implements IEntryQueryExtension, ISortable {
+class OrderExtension implements IMemoraQueryExtension, ISortable {
 
 	public function isApplicable(array $options): bool {
 		// Always applicable unless explicitly disabled

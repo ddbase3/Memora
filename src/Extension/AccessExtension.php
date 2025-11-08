@@ -4,9 +4,9 @@ namespace Memora\Extension;
 
 use Base3\Api\ISortable;
 use Base3\Usermanager\Api\IUsermanager;
-use Memora\Api\IEntryQueryExtension;
+use Memora\Api\IMemoraQueryExtension;
 
-class AccessExtension implements IEntryQueryExtension, ISortable {
+class AccessExtension implements IMemoraQueryExtension, ISortable {
 
 	/** Default public (unauthenticated) user ID */
 	private const DEFAULT_USER_ID = 1;

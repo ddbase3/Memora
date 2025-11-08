@@ -3,13 +3,13 @@
 namespace Memora\Extension;
 
 use Base3\Api\ISortable;
-use Memora\Api\IEntryQueryExtension;
-use DataHawk\Api\IReportQueryService;
+use Memora\Api\IMemoraQueryExtension;
+use ResourceFoundation\Api\IQueryService;
 
-class LoadDataExtension implements IEntryQueryExtension, ISortable {
+class LoadDataExtension implements IMemoraQueryExtension, ISortable {
 
 	public function __construct(
-		private readonly IReportQueryService $dataqueryservice
+		private readonly IQueryService $dataqueryservice
 	) {}
 
 	public function isApplicable(array $options): bool {

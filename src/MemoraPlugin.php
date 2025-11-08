@@ -6,12 +6,12 @@ use Base3\Api\ICheck;
 use Base3\Api\IClassMap;
 use Base3\Api\IContainer;
 use Base3\Api\IPlugin;
-use Memora\Api\IMemoraReportQueryCompiler;
-use Memora\Api\IMemoraReportQueryService;
-use Memora\Api\IMemoraReportSchemaProvider;
-use Memora\Query\MemoraReportQueryCompiler;
-use Memora\Query\MemoraReportQueryService;
-use Memora\Query\MemoraReportSchemaProvider;
+use DataHawk\Compiler\MysqlReportQueryCompiler;
+use DataHawk\Service\DefaultReportQueryService;
+use Memora\Api\IMemoraQueryCompiler;
+use Memora\Api\IMemoraQueryService;
+use Memora\Api\IMemoraQuerySchemaProvider;
+use Memora\Query\MemoraQuerySchemaProvider;
 use Memora\Service\MemoraEntityDataService;
 use ResourceFoundation\Api\IEntityDataService;
 
@@ -33,28 +33,28 @@ class MemoraPlugin implements IPlugin, ICheck {
 			->set(self::getName(), $this, IContainer::SHARED)
 
 			->set(
-				IMemoraReportSchemaProvider::class,
-				fn($c) => new MemoraReportSchemaProvider,
+				IMemoraQuerySchemaProvider::class,
+				fn($c) => new MemoraQuerySchemaProvider,
 				IContainer::SHARED)
 
 			->set(
-				IMemoraReportQueryCompiler::class,
-				fn($c) => new MemoraReportQueryCompiler(
-					$c->get(IMemoraReportSchemaProvider::class)),
+				IMemoraQueryCompiler::class,
+				fn($c) => new MysqlReportQueryCompiler(
+					$c->get(IMemoraQuerySchemaProvider::class)),
 				IContainer::SHARED)
 
 			->set(
-				IMemoraReportQueryService::class,
-                                fn($c) => new MemoraReportQueryService(
-                                        $c->get(IMemoraReportSchemaProvider::class),
-                                        $c->get(IMemoraReportQueryCompiler::class),
+				IMemoraQueryService::class,
+                                fn($c) => new DefaultReportQueryService(
+                                        $c->get(IMemoraQuerySchemaProvider::class),
+                                        $c->get(IMemoraQueryCompiler::class),
                                         $c),
 				IContainer::SHARED)
 
 			->set(
 				IEntityDataService::class,
 				fn($c) => new MemoraEntityDataService(
-					$c->get(IMemoraReportQueryService::class),
+					$c->get(IMemoraQueryService::class),
 					$c->get(IClassMap::class)),
 				IContainer::SHARED | IContainer::NOOVERWRITE);
 	}

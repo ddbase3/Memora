@@ -2,7 +2,7 @@
 
 namespace Memora\Api;
 
-interface IEntryQueryExtension {
+interface IMemoraQueryExtension {
 
 	/**
 	 * Determines whether this extension should be applied based on given options.

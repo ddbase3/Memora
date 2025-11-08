@@ -3,11 +3,11 @@
 namespace Memora\Extension;
 
 use Base3\Api\ISortable;
-use Memora\Api\IEntryQueryExtension;
+use Memora\Api\IMemoraQueryExtension;
 
-class LimitExtension implements IEntryQueryExtension, ISortable {
+class LimitExtension implements IMemoraQueryExtension, ISortable {
 
-	// Implementation of IEntryQueryExtension
+	// Implementation of IMemoraQueryExtension
 
 	public function isApplicable(array $options): bool {
 		return !empty($options['limitcount']);

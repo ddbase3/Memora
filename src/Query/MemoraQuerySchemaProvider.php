@@ -2,17 +2,17 @@
 
 namespace Memora\Query;
 
-use DataHawk\Dto\TableMetadata;
-use DataHawk\Dto\FieldMetadata;
-use DataHawk\Dto\JoinMetadata;
-use Memora\Api\IMemoraReportSchemaProvider;
+use Memora\Api\IMemoraQuerySchemaProvider;
+use ResourceFoundation\Dto\FieldMetadata;
+use ResourceFoundation\Dto\JoinMetadata;
+use ResourceFoundation\Dto\TableMetadata;
 
-class MemoraReportSchemaProvider implements IMemoraReportSchemaProvider {
+class MemoraQuerySchemaProvider implements IMemoraQuerySchemaProvider {
 
 	private string $schemaDir;
 
 	public function __construct() {
-		$this->schemaDir = rtrim(DIR_PLUGIN, '/\\') . '/Memora/local/DataHawk';
+		$this->schemaDir = rtrim(DIR_PLUGIN, '/\\') . '/Memora/local/Schema';
 	}
 
 	/**

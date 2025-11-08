@@ -3,11 +3,11 @@
 namespace Memora\Extension;
 
 use Base3\Api\ISortable;
-use Memora\Api\IEntryQueryExtension;
+use Memora\Api\IMemoraQueryExtension;
 
-class DefaultGroupingExtension implements IEntryQueryExtension, ISortable {
+class DefaultGroupingExtension implements IMemoraQueryExtension, ISortable {
 
-	// Implementation of IEntryQueryExtension
+	// Implementation of IMemoraQueryExtension
 
 	public function isApplicable(array $options): bool {
 		// Always applicable, acts as cleanup and fallback

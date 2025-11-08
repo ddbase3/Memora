@@ -2,21 +2,21 @@
 
 namespace Memora\Service;
 
-use ResourceFoundation\Api\IEntityDataService;
-use DataHawk\Api\IReportQueryService;
 use Base3\Api\IClassMap;
-use Memora\Api\IEntryQueryExtension;
+use Memora\Api\IMemoraQueryExtension;
+use ResourceFoundation\Api\IEntityDataService;
+use ResourceFoundation\Api\IQueryService;
 
 class MemoraEntityDataService implements IEntityDataService {
 
 	public function __construct(
-		private readonly IReportQueryService $dataqueryservice,
+		private readonly IQueryService $dataqueryservice,
 		private readonly IClassMap $classmap
 	) {}
 
 	public function getEntries(array $options = []): array {
 		// Load all available extensions
-		$extensions = $this->classmap->getInstancesByInterface(IEntryQueryExtension::class);
+		$extensions = $this->classmap->getInstancesByInterface(IMemoraQueryExtension::class);
 		usort($extensions, fn($a, $b) => $a->getPriority() <=> $b->getPriority());
 
 		// Initialize minimal base query (extensions define structure)
