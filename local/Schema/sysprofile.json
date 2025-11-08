@@ -1,0 +1,29 @@
+{
+	"name": "base3system_sysprofile",
+	"label": "User Profile",
+	"description": "User-defined profile settings controlling filters like tag/alloc visibility.",
+	"domain": "system",
+	"category": "profile",
+	"tags": ["profile", "user", "filter", "settings"],
+	"fields": [
+		{ "name": "id", "type": "integer", "label": "Profile ID", "required": true },
+		{ "name": "user_id", "type": "integer", "label": "User ID", "required": true },
+		{ "name": "name", "type": "string", "label": "Profile Name", "required": true },
+		{ "name": "profile", "type": "string", "label": "Profile Expression", "required": true },
+		{ "name": "standard", "type": "boolean", "label": "Is Default Profile", "required": true },
+		{ "name": "protected", "type": "boolean", "label": "Protected", "required": true },
+		{ "name": "active", "type": "boolean", "label": "Currently Active", "required": true },
+		{ "name": "archive", "type": "boolean", "label": "Archived", "required": true }
+	],
+	"joins": [
+		{
+			"targetTable": "base3system_sysuser",
+			"on": { "base3system_sysprofile.user_id": "base3system_sysuser.id" },
+			"type": "INNER",
+			"meta": { "default": true }
+		}
+	],
+	"defaultFilters": [],
+	"position": { "x": 680, "y": 560 }
+}
+

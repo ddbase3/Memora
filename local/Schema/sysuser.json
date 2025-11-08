@@ -1,17 +1,21 @@
 {
 	"name": "base3system_sysuser",
 	"label": "System User",
-	"description": "Users of the XRM system",
+	"description": "Registered users of the XRM system with profile and access relationships",
 	"domain": "xrm",
 	"category": "access",
-	"tags": ["user", "account", "member"],
+	"tags": ["user", "account", "member", "profile"],
 	"fields": [
 		{ "name": "id", "type": "integer", "label": "User ID", "required": true },
 		{ "name": "name", "type": "string", "label": "Username", "required": true },
 		{ "name": "fullname", "type": "string", "label": "Full Name" },
 		{ "name": "email", "type": "string", "label": "E-Mail Address" },
 		{ "name": "lang_id", "type": "integer", "label": "Language ID" },
-		{ "name": "mode", "type": "integer", "label": "User Mode", "required": true }
+		{ "name": "mode", "type": "integer", "label": "User Mode", "required": true },
+		{ "name": "role", "type": "string", "label": "User Role", "required": false },
+		{ "name": "active", "type": "boolean", "label": "User Active", "required": false },
+		{ "name": "created", "type": "datetime", "label": "Account Created", "required": false },
+		{ "name": "changed", "type": "datetime", "label": "Last Change", "required": false }
 	],
 	"joins": [
 		{
@@ -42,6 +46,12 @@
 			"targetTable": "base3system_syscomment",
 			"on": { "base3system_sysuser.id": "base3system_syscomment.user_id" },
 			"type": "INNER",
+			"meta": { "default": true }
+		},
+		{
+			"targetTable": "base3system_sysprofile",
+			"on": { "base3system_sysuser.id": "base3system_sysprofile.user_id" },
+			"type": "LEFT",
 			"meta": { "default": true }
 		}
 	],

@@ -4,6 +4,7 @@ namespace Memora\Service;
 
 use Base3\Api\IClassMap;
 use Memora\Api\IMemoraQueryExtension;
+use Memora\Api\IMemoraProfileService;
 use ResourceFoundation\Api\IEntityDataService;
 use ResourceFoundation\Api\IQueryService;
 
@@ -11,10 +12,14 @@ class MemoraEntityDataService implements IEntityDataService {
 
 	public function __construct(
 		private readonly IQueryService $dataqueryservice,
-		private readonly IClassMap $classmap
+		private readonly IClassMap $classmap,
+		private readonly IMemoraProfileService $profiles
 	) {}
 
 	public function getEntries(array $options = []): array {
+		// Apply active user profile to options (if any)
+		$options = $this->applyProfileOptions($options);
+
 		// Load all available extensions
 		$extensions = $this->classmap->getInstancesByInterface(IMemoraQueryExtension::class);
 		usort($extensions, fn($a, $b) => $a->getPriority() <=> $b->getPriority());
@@ -59,6 +64,39 @@ class MemoraEntityDataService implements IEntityDataService {
 		}
 
 		return $rows;
+	}
+
+	private function applyProfileOptions(array $options): array {
+		$profile = $this->profiles->getActiveProfile();
+		if (!$profile || empty($profile['profile'])) {
+			return $options;
+		}
+
+		$expr = $profile['profile'];
+		preg_match_all('/\[(.*?)\]/', $expr, $matches);
+
+		foreach ($matches[1] as $block) {
+			if (!str_contains($block, '=')) continue;
+			[$key, $val] = explode('=', $block, 2);
+			$key = trim($key);
+			$vals = array_map('trim', explode(',', $val));
+
+			switch ($key) {
+				case 'excludealloc':
+				case 'excludetag':
+				case 'tag':
+					$options[$key] = array_merge($options[$key] ?? [], $vals);
+					break;
+				case 'archive':
+					$options['archive'] = $val;
+					break;
+				default:
+					// ignore unknown filters
+					break;
+			}
+		}
+
+		return $options;
 	}
 
 	public function getEntry(int|string $id, array $options = []): ?array {
