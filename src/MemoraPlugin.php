@@ -6,12 +6,13 @@ use Base3\Api\ICheck;
 use Base3\Api\IClassMap;
 use Base3\Api\IContainer;
 use Base3\Api\IPlugin;
-use DataHawk\Api\IReportQueryService;
-use DataHawk\Api\IReportQueryCompiler;
-use DataHawk\Api\IReportSchemaProvider;
-use Memora\DataHawk\MemoraReportSchemaProvider;
+use Memora\Api\IMemoraReportQueryCompiler;
+use Memora\Api\IMemoraReportQueryService;
+use Memora\Api\IMemoraReportSchemaProvider;
+use Memora\Query\MemoraReportQueryCompiler;
+use Memora\Query\MemoraReportQueryService;
+use Memora\Query\MemoraReportSchemaProvider;
 use Memora\Service\MemoraEntityDataService;
-use Memora\Service\MemoraReportQueryService;
 use ResourceFoundation\Api\IEntityDataService;
 
 class MemoraPlugin implements IPlugin, ICheck {
@@ -32,24 +33,30 @@ class MemoraPlugin implements IPlugin, ICheck {
 			->set(self::getName(), $this, IContainer::SHARED)
 
 			->set(
-				IReportSchemaProvider::class,
+				IMemoraReportSchemaProvider::class,
 				fn($c) => new MemoraReportSchemaProvider,
 				IContainer::SHARED)
 
 			->set(
-				IReportQueryService::class,
+				IMemoraReportQueryCompiler::class,
+				fn($c) => new MemoraReportQueryCompiler(
+					$c->get(IMemoraReportSchemaProvider::class)),
+				IContainer::SHARED)
+
+			->set(
+				IMemoraReportQueryService::class,
                                 fn($c) => new MemoraReportQueryService(
-                                        $c->get(IReportSchemaProvider::class),
-                                        $c->get(IReportQueryCompiler::class),
+                                        $c->get(IMemoraReportSchemaProvider::class),
+                                        $c->get(IMemoraReportQueryCompiler::class),
                                         $c),
 				IContainer::SHARED)
 
 			->set(
 				IEntityDataService::class,
 				fn($c) => new MemoraEntityDataService(
-					$c->get(IReportQueryService::class),
+					$c->get(IMemoraReportQueryService::class),
 					$c->get(IClassMap::class)),
-				IContainer::SHARED);
+				IContainer::SHARED | IContainer::NOOVERWRITE);
 	}
 
 	// Implementation of ICheck

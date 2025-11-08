@@ -1,13 +1,13 @@
 <?php declare(strict_types=1);
 
-namespace Memora\DataHawk;
+namespace Memora\Query;
 
-use DataHawk\Api\IReportSchemaProvider;
 use DataHawk\Dto\TableMetadata;
 use DataHawk\Dto\FieldMetadata;
 use DataHawk\Dto\JoinMetadata;
+use Memora\Api\IMemoraReportSchemaProvider;
 
-class MemoraReportSchemaProvider implements IReportSchemaProvider {
+class MemoraReportSchemaProvider implements IMemoraReportSchemaProvider {
 
 	private string $schemaDir;
 
