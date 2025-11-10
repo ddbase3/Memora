@@ -7,8 +7,6 @@ use Memora\Api\IMemoraQueryExtension;
 
 class DefaultGroupingExtension implements IMemoraQueryExtension, ISortable {
 
-	// Implementation of IMemoraQueryExtension
-
 	public function isApplicable(array $options): bool {
 		// Always applicable, acts as cleanup and fallback
 		return true;
@@ -25,31 +23,23 @@ class DefaultGroupingExtension implements IMemoraQueryExtension, ISortable {
 			$query['group_by'] = array_values($uniqueGroups);
 		}
 
-		// Add default group_by if none defined and aggregates exist
+		// Ensure at least one group_by (id) exists to avoid duplicates
 		if (empty($query['group_by'])) {
-			foreach ($query['fields'] as $field) {
-				if (($field['element']['type'] ?? '') === 'fn') {
-					$query['group_by'][] = [
-						'type' => 'fld',
-						'table' => 'base3system_sysentry',
-						'field' => 'id'
-					];
-					break;
-				}
-			}
+			$query['group_by'][] = [
+				'type' => 'fld',
+				'table' => 'base3system_sysentry',
+				'field' => 'id'
+			];
 		}
 
 		return $query;
 	}
 
 	public function processResult(array $rows, array $options): array {
-		// No postprocessing required
 		return $rows;
 	}
 
-	// Implementation of ISortable
-
 	public function getPriority(): int {
-		return 1000;
+		return 1000; // Should always execute last
 	}
 }
