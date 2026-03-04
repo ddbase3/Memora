@@ -74,7 +74,12 @@ class MemoraEntityDataService implements IEntityDataService {
 		return $entries[0] ?? null;
 	}
 
-	public function saveEntry(array $data): int|string {
+	public function createEntry(array $data): int|string {
+		// TODO implement
+		return 0;
+	}
+
+	public function updateEntry(int|string $id, array $patch): int|string {
 		// TODO implement
 		return 0;
 	}

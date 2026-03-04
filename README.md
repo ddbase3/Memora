@@ -45,7 +45,7 @@ $entity = $memora->getEntry(42, ["loadtags" => true]);
 
 // Modify and save
 $entity['tags'][] = 'priority';
-$memora->saveEntry($entity);
+$memora->updateEntry(42, $entity);
 ```
 
 ---
