@@ -3,10 +3,12 @@
 namespace Memora\Service;
 
 use Base3\Api\IClassMap;
-use Memora\Api\IMemoraQueryExtension;
 use Memora\Api\IMemoraProfileService;
+use Memora\Api\IMemoraQueryExtension;
 use ResourceFoundation\Api\IEntityDataService;
 use ResourceFoundation\Api\IQueryService;
+use ResourceFoundation\Exception\AccessDeniedException;
+use ResourceFoundation\Exception\QueryValidationException;
 
 class MemoraEntityDataService implements IEntityDataService {
 
@@ -66,6 +68,73 @@ class MemoraEntityDataService implements IEntityDataService {
 		return $rows;
 	}
 
+	public function getEntry(int|string $id, array $options = []): ?array {
+		$options['entry'] = $id;
+		$entries = $this->getEntries($options);
+		return $entries[0] ?? null;
+	}
+
+	public function saveEntry(array $data): int|string {
+		// TODO implement
+		return 0;
+	}
+
+	public function deleteEntry(int|string $id): bool {
+		// 1) Read entry with access information (no guessing in DELETE where-joins)
+		//    - AccessExtension filters visibility
+		//    - LoadAccessExtension calculates access='edit' for admins / owners / moderators
+		$entry = $this->getEntry($id, [
+			'loadaccess' => true
+		]);
+
+		if (!$entry) {
+			return false;
+		}
+
+		// Enforce delete permission via computed access column
+		if (($entry['access'] ?? 'none') !== 'edit') {
+			return false;
+		}
+
+		// Respect deletion lock if present
+		if (!empty($entry['dellock'])) {
+			return false;
+		}
+
+		// 2) Perform the actual delete (single-table delete, strict where by id)
+		$query = [
+			'type' => 'delete',
+			'table' => 'base3system_sysentry',
+			'where' => [
+				'type' => 'op',
+				'operator' => '=',
+				'params' => [
+					[
+						'type' => 'fld',
+						'table' => 'base3system_sysentry',
+						'field' => 'id'
+					],
+					$id
+				]
+			],
+			'limit' => 1
+		];
+
+		try {
+			$result = $this->dataqueryservice->executeQuery($query);
+		} catch (AccessDeniedException|QueryValidationException|\Throwable $e) {
+			return false;
+		}
+
+		// DefaultReportQueryService encodes DB errors into the sql string
+		$sql = $result->sql ?? '';
+		if ($sql !== '' && str_contains($sql, '❌ DB Error:')) {
+			return false;
+		}
+
+		return true;
+	}
+
 	private function applyProfileOptions(array $options): array {
 		$profile = $this->profiles->getActiveProfile();
 		if (!$profile || empty($profile['profile'])) {
@@ -98,21 +167,4 @@ class MemoraEntityDataService implements IEntityDataService {
 
 		return $options;
 	}
-
-	public function getEntry(int|string $id, array $options = []): ?array {
-		$options['entry'] = $id;
-		$entries = $this->getEntries($options);
-		return $entries[0] ?? null;
-	}
-
-	public function saveEntry(array $data): int|string {
-		// TODO implement
-		return 0;
-	}
-
-	public function deleteEntry(int|string $id): bool {
-		// TODO implement
-		return false;
-	}
 }
-

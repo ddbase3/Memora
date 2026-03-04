@@ -34,7 +34,7 @@ class LoadAccessExtension implements IMemoraQueryExtension, ISortable {
 
 		// Join useraccess
 		$query['leftjoin'][] = [
-			'table' => 'base3system_useraccess',
+			'table' => 'base3system_sysuseraccess',
 			'alias' => 'ua',
 			'on' => [
 				'type' => 'op',
@@ -62,7 +62,7 @@ class LoadAccessExtension implements IMemoraQueryExtension, ISortable {
 
 		// Join groupaccess
 		$query['leftjoin'][] = [
-			'table' => 'base3system_groupaccess',
+			'table' => 'base3system_sysgroupaccess',
 			'alias' => 'ga',
 			'on' => [
 				'type' => 'op',

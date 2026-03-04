@@ -32,11 +32,11 @@ class AccessExtension implements IMemoraQueryExtension, ISortable {
 				'operator' => 'AND',
 				'params' => [
 					[ 'type' => 'op', 'operator' => '=', 'params' => [
-						[ 'type' => 'fld', 'table' => 'base3system_useraccess', 'field' => 'user_id', 'variant' => 'required' ],
+						[ 'type' => 'fld', 'table' => 'base3system_sysuseraccess', 'field' => 'user_id', 'variant' => 'required' ],
 						self::DEFAULT_USER_ID
 					]],
 					[ 'type' => 'op', 'operator' => '!=', 'params' => [
-						[ 'type' => 'fld', 'table' => 'base3system_useraccess', 'field' => 'mode', 'variant' => 'required' ],
+						[ 'type' => 'fld', 'table' => 'base3system_sysuseraccess', 'field' => 'mode', 'variant' => 'required' ],
 						'owner'
 					]]
 				]
@@ -50,7 +50,7 @@ class AccessExtension implements IMemoraQueryExtension, ISortable {
 
 		// Direct user access
 		$userConds[] = [ 'type' => 'op', 'operator' => '=', 'params' => [
-			[ 'type' => 'fld', 'table' => 'base3system_useraccess', 'field' => 'user_id', 'variant' => 'required' ],
+			[ 'type' => 'fld', 'table' => 'base3system_sysuseraccess', 'field' => 'user_id', 'variant' => 'required' ],
 			$user->id
 		]];
 
@@ -60,11 +60,11 @@ class AccessExtension implements IMemoraQueryExtension, ISortable {
 			'operator' => 'AND',
 			'params' => [
 				[ 'type' => 'op', 'operator' => '=', 'params' => [
-					[ 'type' => 'fld', 'table' => 'base3system_useraccess', 'field' => 'user_id', 'variant' => 'required' ],
+					[ 'type' => 'fld', 'table' => 'base3system_sysuseraccess', 'field' => 'user_id', 'variant' => 'required' ],
 					self::DEFAULT_USER_ID
 				]],
 				[ 'type' => 'op', 'operator' => '!=', 'params' => [
-					[ 'type' => 'fld', 'table' => 'base3system_useraccess', 'field' => 'mode', 'variant' => 'required' ],
+					[ 'type' => 'fld', 'table' => 'base3system_sysuseraccess', 'field' => 'mode', 'variant' => 'required' ],
 					'owner'
 				]]
 			]
@@ -79,7 +79,7 @@ class AccessExtension implements IMemoraQueryExtension, ISortable {
 
 		if (!empty($groupIds)) {
 			$groupConds[] = [ 'type' => 'op', 'operator' => 'IN', 'params' => [
-				[ 'type' => 'fld', 'table' => 'base3system_groupaccess', 'field' => 'group_id', 'variant' => 'optional' ],
+				[ 'type' => 'fld', 'table' => 'base3system_sysgroupaccess', 'field' => 'group_id', 'variant' => 'optional' ],
 				$groupIds
 			]];
 		}
