@@ -1,84 +1,1170 @@
 # Memora
 
-**Memora** is a modular XRM/CRM backend for the BASE3 framework and offers a knowledge graph. It provides a unified data layer for managing entities, relationships, metadata, and permissions. Built on **ResourceFoundation**, it enables flexible data structures and consistent access across different modules and extensions.
+**Memora** is a modular XRM/CRM backend and knowledge graph for the BASE3 framework. It provides a unified entity layer for structured data, relations, metadata, tags, and access control. Built on top of **ResourceFoundation** and backed by **DataHawk** query compilation, Memora offers a flexible and extensible CRUD API for domain entities of many different types.
+
+Memora is designed to act as the central data backbone for BASE3-based applications. It can power classic CRM/XRM scenarios, project and contact management, knowledge bases, reporting, workflow automation, and AI-supported applications.
+
+---
+
+## Table of Contents
+
+1. [Overview](#overview)
+2. [Core Concepts](#core-concepts)
+3. [Architecture](#architecture)
+4. [Service Access](#service-access)
+5. [Reading Data](#reading-data)
+6. [Creating Data](#creating-data)
+7. [Updating Data](#updating-data)
+8. [Deleting Data](#deleting-data)
+9. [Access Control](#access-control)
+10. [Tags, Metadata, and Typed Data](#tags-metadata-and-typed-data)
+11. [Relations and Allocations](#relations-and-allocations)
+12. [Profiles and Filtering](#profiles-and-filtering)
+13. [Extension Architecture](#extension-architecture)
+14. [Practical End-to-End Examples](#practical-end-to-end-examples)
+15. [Design Notes](#design-notes)
+16. [License](#license)
 
 ---
 
 ## Overview
 
-Memora acts as the central data and relationship manager for BASE3-based systems. It abstracts database structures into logical entities and relations that can be queried, connected, and extended dynamically. It is designed for both business and knowledge management scenarios, supporting automation, reporting, and AI-driven workflows.
+Memora abstracts a set of relational tables into a consistent entity API.
 
-### Core Responsibilities
+An entity in Memora consists of:
 
-* **Entity Management**: Create, read, update, and delete entities of any type.
-* **Relations & Hierarchies**: Supports unidirectional, bidirectional, and tree-based connections between entities.
-* **Metadata & Tags**: Attach contextual data and tags to any resource.
-* **Access Control**: Fine-grained user and group access at entity level.
-* **History & Logging**: Built-in change tracking and rating mechanisms.
+* a **base entry** in `base3system_sysentry`
+* a **type** defined in `base3system_systype`
+* optional **typed payload data** in a type-specific table
+* optional **name** records in `base3system_sysname`
+* optional **tags** in `base3system_systag`
+* optional **metadata** in `base3system_sysmetadata`
+* optional **allocations / relations** in `base3system_sysalloc`
+* optional **user access** in `base3system_sysuseraccess`
+* optional **group access** in `base3system_sysgroupaccess`
+
+The goal is to make all of this accessible through a single service:
+
+```php
+ResourceFoundation\Api\IEntityDataService
+```
+
+This service supports:
+
+* `getEntries(array $options = []): array`
+* `getEntry(int|string $id, array $options = []): ?array`
+* `createEntry(array $data): int|string`
+* `updateEntry(int|string $id, array $patch): int|string`
+* `deleteEntry(int|string $id): bool`
+
+---
+
+## Core Concepts
+
+### Entity
+
+A Memora entity is the logical business object you work with. Examples may include:
+
+* projects
+* contacts
+* companies
+* tasks
+* notes
+* knowledge nodes
+* custom domain-specific records
+
+### Type
+
+Every entity has a type alias such as:
+
+* `project`
+* `contact`
+* `company`
+
+The type resolves to a type-specific payload table through `base3system_systype`.
+
+### Typed Data
+
+Each type may have its own payload table. For example, a `project` type may store fields like:
+
+* `name`
+* `description`
+* `start`
+* `expense`
+
+Memora keeps base entry metadata separate from type-specific business data.
+
+### Tags
+
+Tags are simple string labels used for classification and filtering.
+
+### Metadata
+
+Metadata stores arbitrary named values attached to an entry. These values may be strings or JSON-encoded structured content.
+
+### Allocs
+
+Allocs are undirected relations between entities. Internally they are stored once in `base3system_sysalloc`, while `base3system_sysallocview` exposes both directions for reading.
+
+### Access
+
+Access is defined on entry level and can be granted to:
+
+* users
+* groups
+
+This allows fine-grained control over visibility and edit permissions.
 
 ---
 
 ## Architecture
 
-Memora builds on the BASE3 **ResourceFoundation** to handle storage and relationships, and integrates seamlessly with:
+Memora is composed of several layers.
 
-| Layer                   | Purpose                                           |
-| ----------------------- | ------------------------------------------------- |
-| **ResourceFoundation**  | Core entity and file abstraction layer            |
-| **ReportFoundation**    | Data analysis, visualization, and reporting       |
-| **AssistentFoundation** | AI-assisted workflows and automation (MissionBay) |
+### BASE3 Layer
 
-This modular structure ensures that Memora can act as both a standalone XRM system or as a backend service for other BASE3 plugins.
+BASE3 provides the plugin system, dependency injection container, routing, output handling, and general application infrastructure.
+
+### ResourceFoundation Layer
+
+ResourceFoundation defines the generic CRUD service interfaces and query abstractions used by Memora.
+
+### DataHawk Layer
+
+DataHawk compiles structured query arrays into executable SQL statements. Memora uses this for:
+
+* reading
+* inserting
+* updating
+* deleting
+* transactional execution
+
+### Memora Layer
+
+Memora itself adds:
+
+* entity semantics
+* type resolution
+* relation handling
+* metadata handling
+* tag handling
+* access control integration
+* profile-based option enrichment
+* extension-driven query and CRUD pipelines
+
+### Extension-Based Execution
+
+Memora is intentionally modular. Querying, creation, and update logic are distributed into extensions.
+
+This has several advantages:
+
+* features remain isolated and testable
+* behavior can be extended without rewriting the main service
+* domain-specific additions can be added incrementally
 
 ---
 
-## Example Usage
+## Service Access
+
+Memora is typically resolved through dependency injection as a generic entity service.
 
 ```php
 use ResourceFoundation\Api\IEntityDataService;
 
-// get service
 $memora = $container->get(IEntityDataService::class);
+```
 
-// Load an entity
-$entity = $memora->getEntry(42, ["loadtags" => true]);
+Inside BASE3 display classes this is commonly injected via the constructor.
 
-// Modify and save
-$entity['tags'][] = 'priority';
-$memora->updateEntry(42, $entity);
+```php
+<?php declare(strict_types=1);
+
+namespace Base3XrmWebsite\Content;
+
+use Base3\Api\IDisplay;
+use ResourceFoundation\Api\IEntityDataService;
+
+class ExampleDisplay implements IDisplay {
+
+	public function __construct(private readonly IEntityDataService $entitydataservice) {}
+
+	public static function getName(): string {
+		return "exampledisplay";
+	}
+
+	public function getOutput(string $out = 'html', bool $final = false): string {
+		$entry = $this->entitydataservice->getEntry(42, [
+			'loadname' => true,
+			'loadtags' => true
+		]);
+
+		return '<pre>' . htmlspecialchars(print_r($entry, true)) . '</pre>';
+	}
+
+	public function getHelp(): string {
+		return 'Example display using Memora.';
+	}
+
+	public function setData($data) {}
+}
 ```
 
 ---
 
-## Integration
+## Reading Data
 
-Memora exposes its functionality through multiple interfaces:
+### `getEntry()`
 
-* **ResourceFoundation** for generic data access
-* **WebDAV adapters** for file-based access (Nextcloud, ILIAS)
-* **MissionBay Nodes** for AI or automation-driven flows
-* **ReportApi connectors** for reporting and dashboards
+Loads one entity by ID.
+
+```php
+$entry = $memora->getEntry(19384, [
+	'loadtype' => true,
+	'loadname' => true,
+	'loaddata' => true,
+	'loadallocs' => true,
+	'loadtags' => true,
+	'loadaccess' => true,
+	'loadmetadata' => true
+]);
+```
+
+### `getEntries()`
+
+Loads a list of entities matching query options.
+
+```php
+$entries = $memora->getEntries([
+	'type' => 'project',
+	'tag' => ['crm'],
+	'loadname' => true,
+	'loadtags' => true,
+	'limit' => 20
+]);
+```
+
+### Base Fields
+
+The base fields are always part of the entity result:
+
+* `id`
+* `uuid`
+* `archive`
+* `dellock`
+* `connections`
+* `etag`
+* `created`
+* `changed`
+
+### Load Verbs
+
+Memora uses explicit load verbs for optional information.
+
+#### `loadtype`
+
+Loads type information.
+
+#### `loadname`
+
+Loads the current name from `base3system_sysname`.
+
+#### `loaddata`
+
+Loads the typed payload from the type-specific table.
+
+#### `loadallocs`
+
+Loads related entry IDs through `base3system_sysallocview`.
+
+#### `loadtags`
+
+Loads tag strings.
+
+#### `loadaccess`
+
+Loads effective access for the current user context.
+
+#### `loadmetadata`
+
+Loads metadata into a `metadata` array.
+
+### Filter Verbs
+
+Examples of supported filter semantics include:
+
+* `entry`
+* `type`
+* `tag`
+* `intag`
+* `excludetag`
+* `archive`
+* alloc-related filters depending on installed extensions
+* ordering / grouping / limit options depending on installed extensions
+
+Example:
+
+```php
+$entries = $memora->getEntries([
+	'type' => 'project',
+	'tag' => ['important', 'crm'],
+	'excludetag' => ['archived_marker'],
+	'archive' => 0,
+	'loadname' => true,
+	'loaddata' => true,
+	'limit' => 50
+]);
+```
+
+### Example Result
+
+A typical fully-loaded entity may look like this:
+
+```php
+[
+	'id' => 19384,
+	'uuid' => '36cd2ce7cd5f49f4b700d4022f862fe5',
+	'archive' => 0,
+	'dellock' => 0,
+	'connections' => 2,
+	'etag' => '6d2f0d6bc1f64a4f94586d8b07a8f6be',
+	'created' => '2026-03-06 10:00:00',
+	'changed' => '2026-03-06 10:30:00',
+	'type' => 'project',
+	'name' => 'Project Alpha',
+	'tags' => ['crm', 'important'],
+	'allocs' => [19385, 19386],
+	'access' => 'edit',
+	'metadata' => [
+		'source' => 'import',
+		'flags' => [
+			'synced' => true
+		]
+	],
+	'data' => [
+		'id' => 19384,
+		'name' => 'Project Alpha',
+		'description' => 'Example project',
+		'start' => '2026-03-01',
+		'expense' => 1200
+	]
+]
+```
 
 ---
 
-## Goals
+## Creating Data
 
-* Provide a unified XRM data foundation for all BASE3 plugins
-* Keep the data model flexible, schema-driven, and self-describing
-* Maintain consistency between entities, relations, and metadata
-* Enable integration with external storage and service layers
+### `createEntry()`
+
+Creates a new entity and returns its ID.
+
+The create payload is extension-based. Depending on the installed create extensions, the following keys are typically supported:
+
+* `type`
+* `name`
+* `data`
+* `tags`
+* `allocs`
+* `useraccess`
+* `groupaccess`
+* `metadata`
+
+### Minimal Create Example
+
+```php
+$newId = $memora->createEntry([
+	'type' => 'project',
+	'data' => [
+		'name' => 'Minimal Project'
+	]
+]);
+```
+
+### Full Create Example
+
+```php
+$newId = $memora->createEntry([
+	'type' => 'project',
+	'name' => 'Project Phoenix',
+	'tags' => [
+		'crm',
+		'important',
+		'customer_a'
+	],
+	'allocs' => [
+		19384,
+		19385
+	],
+	'useraccess' => [
+		[
+			'user_id' => 2,
+			'mode' => 'owner'
+		],
+		[
+			'user_id' => 1,
+			'mode' => 'visitor'
+		]
+	],
+	'groupaccess' => [
+		[
+			'group_id' => 1,
+			'mode' => 'visitor'
+		]
+	],
+	'metadata' => [
+		'source' => 'manual',
+		'flags' => [
+			'created_by_test' => true
+		]
+	],
+	'data' => [
+		'name' => 'Project Phoenix',
+		'description' => 'Created through Memora',
+		'start' => date('Y-m-d'),
+		'expense' => 0
+	]
+]);
+```
+
+### Create Behavior
+
+During creation Memora typically performs the following steps:
+
+1. resolve type information
+2. normalize payload parts
+3. insert base entry
+4. queue additional inserts for name, tags, allocs, access, metadata, typed data
+5. execute queued statements transactionally
+6. return the new entry ID
+
+### Notes
+
+* `uuid` and `etag` are generated automatically if not provided.
+* `created` and `changed` are set automatically.
+* duplicate tags and duplicate access rows are normalized out before insert.
+* typed data is limited to fields that exist in the type table metadata.
 
 ---
 
-## Future Extensions
+## Updating Data
 
-* Extended role-based access model
-* Advanced search and filtering services
-* Integration with external CRM/ERP connectors
-* AI-assisted relationship discovery via AssistentApi
+### `updateEntry()`
+
+Updates an existing entity using a **patch syntax**.
+
+Only the explicitly provided operations are applied. Fields not mentioned remain unchanged.
+
+This is a key design rule of Memora: updates are **partial and explicit**.
+
+### Supported Update Verbs
+
+The current flat update syntax uses the following keys.
+
+#### Base Entry
+
+```php
+'set' => [
+	'archive' => 0,
+	'dellock' => 0,
+	'connections' => 2
+]
+```
+
+Supported base fields:
+
+* `archive`
+* `dellock`
+* `connections`
+
+Fields like `id`, `uuid`, `etag`, and `created` are not patchable through `set`.
+
+#### Name
+
+```php
+'setname' => 'New Title'
+```
+
+Updates or creates the default language name record (`lang_id = 1`).
+
+#### Typed Data
+
+```php
+'setdata' => [
+	'description' => 'Updated text',
+	'expense' => 500
+],
+'unsetdata' => [
+	'start'
+]
+```
+
+* `setdata` writes values into the type-specific payload table
+* `unsetdata` sets the given typed fields to `NULL`
+* if the typed row does not exist yet, it is created when `setdata` contains values
+
+#### Metadata
+
+```php
+'setmetadata' => [
+	'source' => 'api',
+	'flags' => [
+		'updated' => true
+	]
+],
+'unsetmetadata' => [
+	'temp_key'
+]
+```
+
+* `setmetadata` inserts or updates metadata keys
+* structured values are JSON-encoded automatically
+* `unsetmetadata` removes metadata rows by key
+
+#### Tags
+
+```php
+'addtags' => ['important'],
+'removetags' => ['draft']
+```
+
+or:
+
+```php
+'replacetags' => ['crm', 'final']
+```
+
+Rules:
+
+* `replacetags` must not be combined with `addtags` or `removetags`
+* tag values are normalized and deduplicated
+
+#### Allocs
+
+```php
+'addallocs' => [19384, 19385],
+'removeallocs' => [19386]
+```
+
+or:
+
+```php
+'replaceallocs' => [19384, 19385]
+```
+
+Rules:
+
+* allocs are undirected
+* Memora stores only one canonical relation row in `base3system_sysalloc`
+* `replaceallocs` must not be combined with `addallocs` or `removeallocs`
+
+#### User Access
+
+```php
+'adduseraccess' => [
+	[
+		'user_id' => 5,
+		'mode' => 'visitor'
+	]
+],
+'removeuseraccess' => [
+	[
+		'user_id' => 1,
+		'mode' => 'visitor'
+	]
+]
+```
+
+or:
+
+```php
+'replaceuseraccess' => [
+	[
+		'user_id' => 2,
+		'mode' => 'owner'
+	],
+	[
+		'user_id' => 7,
+		'mode' => 'moderator'
+	]
+]
+```
+
+Valid user modes:
+
+* `visitor`
+* `moderator`
+* `owner`
+
+Removal is always done by complete combination:
+
+* `entry_id`
+* `user_id`
+* `mode`
+
+#### Group Access
+
+```php
+'addgroupaccess' => [
+	[
+		'group_id' => 1,
+		'mode' => 'visitor'
+	]
+],
+'removegroupaccess' => [
+	[
+		'group_id' => 1,
+		'mode' => 'visitor'
+	]
+]
+```
+
+or:
+
+```php
+'replacegroupaccess' => [
+	[
+		'group_id' => 1,
+		'mode' => 'moderator'
+	]
+]
+```
+
+Valid group modes:
+
+* `visitor`
+* `moderator`
+
+### Full Update Example
+
+```php
+$memora->updateEntry(19384, [
+	'set' => [
+		'archive' => 0,
+		'connections' => 3
+	],
+	'setname' => 'Project Alpha Updated',
+	'setdata' => [
+		'description' => 'Updated via patch',
+		'expense' => 900
+	],
+	'unsetdata' => [
+		'start'
+	],
+	'addtags' => [
+		'updated',
+		'priority'
+	],
+	'removetags' => [
+		'draft'
+	],
+	'addallocs' => [
+		19385
+	],
+	'removeallocs' => [
+		19386
+	],
+	'adduseraccess' => [
+		[
+			'user_id' => 9,
+			'mode' => 'visitor'
+		]
+	],
+	'addgroupaccess' => [
+		[
+			'group_id' => 4,
+			'mode' => 'visitor'
+		]
+	],
+	'setmetadata' => [
+		'source' => 'api',
+		'flags' => [
+			'updated' => true
+		]
+	],
+	'unsetmetadata' => [
+		'old_temp_key'
+	]
+]);
+```
+
+### Replace Example
+
+```php
+$memora->updateEntry(19384, [
+	'replacetags' => ['crm', 'final'],
+	'replaceallocs' => [19390, 19391],
+	'replaceuseraccess' => [
+		[
+			'user_id' => 2,
+			'mode' => 'owner'
+		]
+	],
+	'replacegroupaccess' => [
+		[
+			'group_id' => 1,
+			'mode' => 'visitor'
+		]
+	]
+]);
+```
+
+### Update Behavior
+
+During update Memora typically performs the following steps:
+
+1. load the current entry including access context
+2. verify the entry exists
+3. verify current user has `edit` access
+4. reject update if `dellock` is set
+5. normalize and validate patch parts through update extensions
+6. queue SQL operations in `transaction_queries`
+7. execute all operations in one transaction
+8. update the base entry `changed` timestamp
+
+### Error Handling
+
+Updates throw exceptions for invalid situations such as:
+
+* unknown or unsupported patch shape
+* invalid field values
+* conflicting verbs like `replacetags` + `addtags`
+* missing edit access
+* missing entry
+* invalid type payload updates
+
+---
+
+## Deleting Data
+
+### `deleteEntry()`
+
+Deletes an entity by ID.
+
+```php
+$deleted = $memora->deleteEntry(19384);
+```
+
+### Delete Behavior
+
+Deletion succeeds only if:
+
+* the entry exists
+* current user has `edit` access
+* `dellock` is not set
+
+The base entry row is deleted from `base3system_sysentry`. Related rows are expected to be removed through foreign key cascades where configured.
+
+### Example
+
+```php
+$id = 19384;
+
+$before = $memora->getEntry($id, [
+	'loadname' => true,
+	'loaddata' => true,
+	'loadtags' => true,
+	'loadallocs' => true,
+	'loadmetadata' => true
+]);
+
+$deleted = $memora->deleteEntry($id);
+
+$after = $memora->getEntry($id, [
+	'loadname' => true,
+	'loaddata' => true,
+	'loadtags' => true,
+	'loadallocs' => true,
+	'loadmetadata' => true
+]);
+```
+
+---
+
+## Access Control
+
+Memora supports user-based and group-based access.
+
+### User Access Table
+
+`base3system_sysuseraccess`
+
+Fields:
+
+* `entry_id`
+* `user_id`
+* `mode`
+
+Valid modes:
+
+* `visitor`
+* `moderator`
+* `owner`
+
+### Group Access Table
+
+`base3system_sysgroupaccess`
+
+Fields:
+
+* `entry_id`
+* `group_id`
+* `mode`
+
+Valid modes:
+
+* `visitor`
+* `moderator`
+
+### Effective Access
+
+When `loadaccess` is used, Memora resolves the current user context into an effective access string such as:
+
+* `edit`
+* `view`
+* `none`
+
+Admins receive `edit` directly.
+
+### Query Protection
+
+Memora also applies access restrictions at query level through access-related query extensions, so users only see entries they are allowed to access.
+
+---
+
+## Tags, Metadata, and Typed Data
+
+### Tags
+
+Tags are lightweight string classifications.
+
+Good use cases:
+
+* labels
+* categories
+* workflow states
+* reporting filters
+
+### Metadata
+
+Metadata is suited for structured context that should not become part of the formal type schema.
+
+Good use cases:
+
+* import markers
+* sync states
+* integration payloads
+* flags
+* debugging context
+* external IDs
+
+### Typed Data
+
+Typed data belongs to the formal business schema of the entity type.
+
+Good use cases:
+
+* project dates
+* contact fields
+* financial values
+* workflow-specific columns
+
+### Rule of Thumb
+
+Use:
+
+* **typed data** for business fields that belong to the type schema
+* **metadata** for flexible technical or contextual fields
+* **tags** for quick categorization and filtering
+
+---
+
+## Relations and Allocations
+
+Allocs represent undirected relations between entities.
+
+The physical table is:
+
+* `base3system_sysalloc`
+
+Fields:
+
+* `id`
+* `entry_id_1`
+* `entry_id_2`
+
+Uniqueness is enforced on:
+
+* `(entry_id_1, entry_id_2)`
+
+For reading, Memora uses the view:
+
+* `base3system_sysallocview`
+
+Fields:
+
+* `id`
+* `entry_id`
+* `peer_id`
+
+This view mirrors every stored relation in both directions, so a single stored relation can be read naturally from either side.
+
+Example:
+
+If the table stores:
+
+```text
+entry_id_1 = 10
+entry_id_2 = 20
+```
+
+then the view exposes:
+
+```text
+entry_id = 10, peer_id = 20
+entry_id = 20, peer_id = 10
+```
+
+This makes relation reads simple while keeping writes normalized.
+
+---
+
+## Profiles and Filtering
+
+Memora supports profile-based option enrichment through `IMemoraProfileService`.
+
+A profile may transparently append or merge options such as:
+
+* `tag`
+* `excludetag`
+* `excludealloc`
+* `archive`
+
+This allows user-specific or context-specific filtering rules without changing each query call manually.
+
+Example idea:
+
+* automatically hide archived entries
+* automatically exclude technical tags
+* automatically narrow queries to a work context
+
+---
+
+## Extension Architecture
+
+Memora is intentionally built around extensions.
+
+### Query Extensions
+
+Interface:
+
+```php
+Memora\Api\IMemoraQueryExtension
+```
+
+Responsibilities:
+
+* decide if they apply to given query options
+* modify the structured query before execution
+* post-process result rows after execution
+
+Examples:
+
+* `BaseFieldsExtension`
+* `LoadNameExtension`
+* `LoadDataExtension`
+* `LoadTagsExtension`
+* `LoadMetadataExtension`
+* `LoadAccessExtension`
+* filter extensions
+
+### Create Extensions
+
+Interface:
+
+```php
+Memora\Api\IMemoraCreateExtension
+```
+
+Responsibilities:
+
+* validate and normalize create payload parts
+* resolve context such as type information
+* insert base and related rows
+* contribute transaction statements
+
+Examples:
+
+* `CreateTypeResolverCreateExtension`
+* `CreateBaseEntryCreateExtension`
+* `CreateNameCreateExtension`
+* `CreateTagsCreateExtension`
+* `CreateAllocsCreateExtension`
+* `CreateUserAccessCreateExtension`
+* `CreateGroupAccessCreateExtension`
+* `CreateTypedDataCreateExtension`
+* `CreateMetadataCreateExtension`
+
+### Update Extensions
+
+Interface:
+
+```php
+Memora\Api\IMemoraUpdateExtension
+```
+
+Responsibilities:
+
+* validate and normalize patch parts
+* add update/insert/delete statements to the transaction queue
+* implement partial mutation semantics per domain
+
+Examples:
+
+* `UpdateBaseEntryUpdateExtension`
+* `UpdateNameUpdateExtension`
+* `UpdateTypedDataUpdateExtension`
+* `UpdateMetadataUpdateExtension`
+* `UpdateTagsUpdateExtension`
+* `UpdateAllocsUpdateExtension`
+* `UpdateUserAccessUpdateExtension`
+* `UpdateGroupAccessUpdateExtension`
+* `UpdateTouchUpdateExtension`
+
+### Benefits of the Extension Model
+
+* clean separation of concerns
+* easier debugging and testing
+* incremental feature growth
+* type/domain-specific customization
+* better maintainability than monolithic CRUD logic
+
+---
+
+## Practical End-to-End Examples
+
+### Example: Create and Reload
+
+```php
+$newId = $memora->createEntry([
+	'type' => 'project',
+	'name' => 'Project Delta',
+	'tags' => ['crm', 'new'],
+	'metadata' => [
+		'source' => 'manual'
+	],
+	'data' => [
+		'name' => 'Project Delta',
+		'description' => 'Created through README example',
+		'expense' => 0
+	]
+]);
+
+$entry = $memora->getEntry($newId, [
+	'loadtype' => true,
+	'loadname' => true,
+	'loaddata' => true,
+	'loadtags' => true,
+	'loadmetadata' => true
+]);
+```
+
+### Example: Add Metadata and Tags Later
+
+```php
+$memora->updateEntry($newId, [
+	'addtags' => ['reviewed'],
+	'setmetadata' => [
+		'qa_status' => 'passed',
+		'flags' => [
+			'ready' => true
+		]
+	]
+]);
+```
+
+### Example: Replace Access Rules
+
+```php
+$memora->updateEntry($newId, [
+	'replaceuseraccess' => [
+		[
+			'user_id' => 2,
+			'mode' => 'owner'
+		],
+		[
+			'user_id' => 8,
+			'mode' => 'moderator'
+		]
+	],
+	'replacegroupaccess' => [
+		[
+			'group_id' => 1,
+			'mode' => 'visitor'
+		]
+	]
+]);
+```
+
+### Example: Replace Relations Completely
+
+```php
+$memora->updateEntry($newId, [
+	'replaceallocs' => [19384, 19385, 19390]
+]);
+```
+
+### Example: Archive Entry
+
+```php
+$memora->updateEntry($newId, [
+	'set' => [
+		'archive' => 1
+	]
+]);
+```
+
+### Example: Delete Entity
+
+```php
+$deleted = $memora->deleteEntry($newId);
+```
+
+---
+
+## Design Notes
+
+### Explicitness Over Magic
+
+Memora prefers explicit verbs for loading and patching.
+
+This is why the API uses:
+
+* `loadtags` instead of implicit relation loading
+* `setmetadata` instead of silently merging arbitrary top-level keys
+* `replacetags` instead of guessing intended semantics from `tags = [...]`
+
+### Partial Updates
+
+`updateEntry()` never overwrites unspecified fields.
+
+This is essential for:
+
+* safe API usage
+* predictable patch semantics
+* composable update operations
+* extension-based mutation handling
+
+### Canonical Relation Storage
+
+Undirected relations are stored in one canonical row only. Read symmetry is created through a database view.
+
+### Transactional Mutation
+
+Multi-part create and update operations are executed transactionally so that related changes remain consistent.
 
 ---
 
 ## License
 
-Memora is part of the BASE3 ecosystem and distributed under the same open licensing terms.
+Memora is part of the BASE3 ecosystem and distributed under the terms of the **GNU General Public License v3.0 (GPL-3.0)**.
+

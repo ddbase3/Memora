@@ -36,11 +36,13 @@ class CreateAllocsCreateExtension implements IMemoraCreateExtension, ISortable {
 		foreach ($allocs as $peerId) {
 			if (is_string($peerId) && ctype_digit($peerId)) $peerId = (int)$peerId;
 			if (!is_int($peerId) || $peerId <= 0) continue;
+			if ($peerId === (int)$context['entry_id']) continue;
 
-			// Undirected relationship: store only one row (entry_id_1=new, entry_id_2=peer). View mirrors automatically.
-			$values[] = [
-				'entry_id_1' => (int)$context['entry_id'],
-				'entry_id_2' => (int)$peerId
+			$pair = $this->makeCanonicalPair((int)$context['entry_id'], $peerId);
+
+			$values[$pair['entry_id_1'] . ':' . $pair['entry_id_2']] = [
+				'entry_id_1' => $pair['entry_id_1'],
+				'entry_id_2' => $pair['entry_id_2']
 			];
 		}
 
@@ -48,12 +50,27 @@ class CreateAllocsCreateExtension implements IMemoraCreateExtension, ISortable {
 
 		$context['transaction_queries'][] = [
 			'type' => 'insert',
+			'ignore' => true,
 			'table' => 'base3system_sysalloc',
-			'values' => $values
+			'values' => array_values($values)
 		];
 	}
 
 	public function afterCreate(array $entry, array &$context): void {}
+
+	private function makeCanonicalPair(int $entryId, int $peerId): array {
+		if ($entryId < $peerId) {
+			return [
+				'entry_id_1' => $entryId,
+				'entry_id_2' => $peerId
+			];
+		}
+
+		return [
+			'entry_id_1' => $peerId,
+			'entry_id_2' => $entryId
+		];
+	}
 
 	public function getPriority(): int {
 		return 500;
