@@ -8,6 +8,7 @@ use Base3\Api\IContainer;
 use Base3\Api\IPlugin;
 use Base3\Usermanager\Api\IUsermanager;
 use DataHawk\Compiler\MysqlReportQueryCompiler;
+use DataHawk\Service\DefaultReportQueryService;
 use Memora\Api\IMemoraProfileService;
 use Memora\Api\IMemoraQueryCompiler;
 use Memora\Api\IMemoraQueryService;
@@ -15,7 +16,7 @@ use Memora\Api\IMemoraQuerySchemaProvider;
 use Memora\Query\MemoraQuerySchemaProvider;
 use Memora\Service\MemoraEntityDataService;
 use Memora\Service\MemoraProfileService;
-use Memora\Service\MemoraQueryService;
+use Memora\Service\MemoraQueryServiceAdapter;
 use ResourceFoundation\Api\IEntityDataService;
 
 class MemoraPlugin implements IPlugin, ICheck {
@@ -47,10 +48,12 @@ class MemoraPlugin implements IPlugin, ICheck {
 
 			->set(
 				IMemoraQueryService::class,
-				fn($c) => new MemoraQueryService(
-					$c->get(IMemoraQuerySchemaProvider::class),
-					$c->get(IMemoraQueryCompiler::class),
-					$c
+				fn($c) => new MemoraQueryServiceAdapter(
+					new DefaultReportQueryService(
+						$c->get(IMemoraQuerySchemaProvider::class),
+						$c->get(IMemoraQueryCompiler::class),
+						$c
+					)
 				),
 				IContainer::SHARED
 			)
