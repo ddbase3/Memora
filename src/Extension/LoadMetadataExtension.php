@@ -4,12 +4,12 @@ namespace Memora\Extension;
 
 use Base3\Api\ISortable;
 use Memora\Api\IMemoraQueryExtension;
-use ResourceFoundation\Api\IQueryService;
+use Memora\Api\IMemoraQueryService;
 
 class LoadMetadataExtension implements IMemoraQueryExtension, ISortable {
 
 	public function __construct(
-		private readonly IQueryService $dataqueryservice
+		private readonly IMemoraQueryService $dataqueryservice
 	) {}
 
 	public function isApplicable(array $options): bool {
@@ -58,7 +58,6 @@ class LoadMetadataExtension implements IMemoraQueryExtension, ISortable {
 		$metaResult = $this->dataqueryservice->executeQuery($metaQuery);
 		$metaRows = $metaResult->rows ?? [];
 		if (empty($metaRows)) {
-			// Still attach an empty meta container for consistency if you want:
 			foreach ($rows as &$row) {
 				$row['metadata'] = $row['metadata'] ?? [];
 			}
@@ -72,7 +71,7 @@ class LoadMetadataExtension implements IMemoraQueryExtension, ISortable {
 			$name = $m['name'] ?? null;
 			if (!$entryId || !$name) continue;
 
-			$raw = $m['data'] ?? '';
+			$raw = (string)($m['data'] ?? '');
 			$decoded = $this->decodeMetadataValue($raw);
 
 			$metaByEntry[$entryId][$name] = $decoded;
@@ -88,7 +87,6 @@ class LoadMetadataExtension implements IMemoraQueryExtension, ISortable {
 	}
 
 	private function decodeMetadataValue(string $raw): mixed {
-		// Store as JSON when possible; fallback to raw string
 		$raw = trim($raw);
 		if ($raw === '') {
 			return null;
@@ -103,6 +101,6 @@ class LoadMetadataExtension implements IMemoraQueryExtension, ISortable {
 	}
 
 	public function getPriority(): int {
-		return 995; // Slightly before loaddata (990) or after, up to you
+		return 995;
 	}
 }

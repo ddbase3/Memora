@@ -12,18 +12,24 @@ class LoadAllocsExtension implements IMemoraQueryExtension, ISortable {
 	}
 
 	public function applyToQuery(array $query, array $options): array {
-		// Add allocation aggregation field
+		// Add allocation aggregation field (DISTINCT prevents duplicates caused by row-multiplication through joins)
 		$query['fields'][] = [
 			'element' => [
 				'type' => 'fn',
 				'function' => 'GROUP_CONCAT',
 				'params' => [
 					[
-						'type' => 'fld',
-						'table' => 'base3system_sysallocview',
-						'tablealias' => 'loadallocs',
-						'field' => 'peer_id',
-						'variant' => 'optional'
+						'type' => 'fn',
+						'function' => 'DISTINCT',
+						'params' => [
+							[
+								'type' => 'fld',
+								'table' => 'base3system_sysallocview',
+								'tablealias' => 'loadallocs',
+								'field' => 'peer_id',
+								'variant' => 'optional'
+							]
+						]
 					]
 				]
 			],
@@ -34,12 +40,17 @@ class LoadAllocsExtension implements IMemoraQueryExtension, ISortable {
 	}
 
 	public function processResult(array $rows, array $options): array {
-		// Convert comma-separated peer_ids into arrays of integers
 		foreach ($rows as &$row) {
 			if (!empty($row['allocs']) && is_string($row['allocs'])) {
-				$row['allocs'] = array_values(array_filter(
-					array_map('intval', explode(',', $row['allocs']))
-				));
+				$vals = array_filter(array_map('trim', explode(',', $row['allocs'])), fn($v) => $v !== '');
+				$ints = array_map('intval', $vals);
+				$ints = array_values(array_unique(array_filter($ints, fn($v) => $v > 0)));
+				$row['allocs'] = $ints;
+			} else {
+				$row['allocs'] = $row['allocs'] ?? [];
+				if (!is_array($row['allocs'])) {
+					$row['allocs'] = [];
+				}
 			}
 		}
 		unset($row);
@@ -48,7 +59,6 @@ class LoadAllocsExtension implements IMemoraQueryExtension, ISortable {
 	}
 
 	public function getPriority(): int {
-		// Execute around same time as LoadTagsExtension
 		return 840;
 	}
 }

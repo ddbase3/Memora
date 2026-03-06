@@ -8,7 +8,6 @@ use Base3\Api\IContainer;
 use Base3\Api\IPlugin;
 use Base3\Usermanager\Api\IUsermanager;
 use DataHawk\Compiler\MysqlReportQueryCompiler;
-use DataHawk\Service\DefaultReportQueryService;
 use Memora\Api\IMemoraProfileService;
 use Memora\Api\IMemoraQueryCompiler;
 use Memora\Api\IMemoraQueryService;
@@ -16,19 +15,16 @@ use Memora\Api\IMemoraQuerySchemaProvider;
 use Memora\Query\MemoraQuerySchemaProvider;
 use Memora\Service\MemoraEntityDataService;
 use Memora\Service\MemoraProfileService;
+use Memora\Service\MemoraQueryService;
 use ResourceFoundation\Api\IEntityDataService;
 
 class MemoraPlugin implements IPlugin, ICheck {
 
 	public function __construct(private readonly IContainer $container) {}
 
-	// Implementation of IBase
-
 	public static function getName(): string {
 		return "memoraplugin";
 	}
-
-	// Implementation of IPlugin
 
 	public function init() {
 		$this->container
@@ -38,21 +34,26 @@ class MemoraPlugin implements IPlugin, ICheck {
 			->set(
 				IMemoraQuerySchemaProvider::class,
 				fn($c) => new MemoraQuerySchemaProvider,
-				IContainer::SHARED)
+				IContainer::SHARED
+			)
 
 			->set(
 				IMemoraQueryCompiler::class,
 				fn($c) => new MysqlReportQueryCompiler(
-					$c->get(IMemoraQuerySchemaProvider::class)),
-				IContainer::SHARED)
+					$c->get(IMemoraQuerySchemaProvider::class)
+				),
+				IContainer::SHARED
+			)
 
 			->set(
 				IMemoraQueryService::class,
-                                fn($c) => new DefaultReportQueryService(
-                                        $c->get(IMemoraQuerySchemaProvider::class),
-                                        $c->get(IMemoraQueryCompiler::class),
-                                        $c),
-				IContainer::SHARED)
+				fn($c) => new MemoraQueryService(
+					$c->get(IMemoraQuerySchemaProvider::class),
+					$c->get(IMemoraQueryCompiler::class),
+					$c
+				),
+				IContainer::SHARED
+			)
 
 			->set(
 				IMemoraProfileService::class,
@@ -69,11 +70,11 @@ class MemoraPlugin implements IPlugin, ICheck {
 				fn($c) => new MemoraEntityDataService(
 					$c->get(IMemoraQueryService::class),
 					$c->get(IClassMap::class),
-					$c->get(IMemoraProfileService::class)),
-				IContainer::SHARED | IContainer::NOOVERWRITE);
+					$c->get(IMemoraProfileService::class)
+				),
+				IContainer::SHARED | IContainer::NOOVERWRITE
+			);
 	}
-
-	// Implementation of ICheck
 
 	public function checkDependencies() {
 		return array(

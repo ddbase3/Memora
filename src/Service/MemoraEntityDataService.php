@@ -3,30 +3,28 @@
 namespace Memora\Service;
 
 use Base3\Api\IClassMap;
+use Memora\Api\IMemoraCreateExtension;
 use Memora\Api\IMemoraProfileService;
 use Memora\Api\IMemoraQueryExtension;
+use Memora\Api\IMemoraQueryService;
 use ResourceFoundation\Api\IEntityDataService;
-use ResourceFoundation\Api\IQueryService;
 use ResourceFoundation\Exception\AccessDeniedException;
 use ResourceFoundation\Exception\QueryValidationException;
 
 class MemoraEntityDataService implements IEntityDataService {
 
 	public function __construct(
-		private readonly IQueryService $dataqueryservice,
+		private readonly IMemoraQueryService $dataqueryservice,
 		private readonly IClassMap $classmap,
 		private readonly IMemoraProfileService $profiles
 	) {}
 
 	public function getEntries(array $options = []): array {
-		// Apply active user profile to options (if any)
 		$options = $this->applyProfileOptions($options);
 
-		// Load all available extensions
 		$extensions = $this->classmap->getInstancesByInterface(IMemoraQueryExtension::class);
 		usort($extensions, fn($a, $b) => $a->getPriority() <=> $b->getPriority());
 
-		// Initialize minimal base query (extensions define structure)
 		$query = [
 			'type' => 'select',
 			'fields' => [],
@@ -34,14 +32,12 @@ class MemoraEntityDataService implements IEntityDataService {
 			'where' => []
 		];
 
-		// Apply all applicable extensions to query
 		foreach ($extensions as $ext) {
 			if ($ext->isApplicable($options)) {
 				$query = $ext->applyToQuery($query, $options);
 			}
 		}
 
-		// Combine where clauses into AND structure if needed
 		if (!empty($query['where']) && is_array($query['where'])) {
 			if (!isset($query['where']['type']) && count($query['where']) > 1) {
 				$query['where'] = [
@@ -54,11 +50,9 @@ class MemoraEntityDataService implements IEntityDataService {
 			}
 		}
 
-		// Execute query
 		$result = $this->dataqueryservice->executeQuery($query);
 		$rows = $result->rows ?? [];
 
-		// Process results via extensions
 		foreach ($extensions as $ext) {
 			if ($ext->isApplicable($options)) {
 				$rows = $ext->processResult($rows, $options);
@@ -75,38 +69,94 @@ class MemoraEntityDataService implements IEntityDataService {
 	}
 
 	public function createEntry(array $data): int|string {
-		// TODO implement
-		return 0;
+		$entry = $data['entry'] ?? $data;
+
+		if (!is_array($entry) || empty($entry)) {
+			throw new \InvalidArgumentException("createEntry expects an 'entry' array payload.");
+		}
+
+		$extensions = $this->classmap->getInstancesByInterface(IMemoraCreateExtension::class);
+		if (empty($extensions)) {
+			throw new \RuntimeException("No IMemoraCreateExtension implementations registered.");
+		}
+
+		usort($extensions, fn($a, $b) => $a->getPriority() <=> $b->getPriority());
+
+		$context = [
+			'entry_id' => null,
+			'type_id' => null,
+			'type_alias' => null,
+			'type_dbtable' => null,
+			'type_primary' => null,
+			'transaction_queries' => []
+		];
+
+		foreach ($extensions as $ext) {
+			if ($ext->isApplicable($entry)) {
+				$ext->beforeCreate($entry, $context);
+			}
+		}
+
+		foreach ($extensions as $ext) {
+			if (!$ext->isApplicable($entry)) continue;
+			$ext->create($entry, $context);
+		}
+
+		if (empty($context['entry_id'])) {
+			throw new \RuntimeException("Create pipeline finished without setting context['entry_id'].");
+		}
+
+		$txQueries = $context['transaction_queries'] ?? [];
+		if (is_array($txQueries) && count($txQueries)) {
+			try {
+				$this->dataqueryservice->executeQuery([
+					'type' => 'transaction',
+					'queries' => $txQueries
+				]);
+			} catch (\Throwable $e) {
+				try {
+					$this->dataqueryservice->executeQuery([
+						'type' => 'delete',
+						'table' => 'base3system_sysentry',
+						'where' => [
+							'type' => 'op',
+							'operator' => '=',
+							'params' => [
+								[ 'type' => 'fld', 'table' => 'base3system_sysentry', 'field' => 'id' ],
+								$context['entry_id']
+							]
+						],
+						'limit' => 1
+					]);
+				} catch (\Throwable $cleanupError) {
+				}
+
+				throw $e;
+			}
+		}
+
+		foreach ($extensions as $ext) {
+			if ($ext->isApplicable($entry)) {
+				$ext->afterCreate($entry, $context);
+			}
+		}
+
+		return $context['entry_id'];
 	}
 
 	public function updateEntry(int|string $id, array $patch): int|string {
-		// TODO implement
 		return 0;
 	}
 
 	public function deleteEntry(int|string $id): bool {
-		// 1) Read entry with access information (no guessing in DELETE where-joins)
-		//    - AccessExtension filters visibility
-		//    - LoadAccessExtension calculates access='edit' for admins / owners / moderators
 		$entry = $this->getEntry($id, [
 			'loadaccess' => true
 		]);
 
-		if (!$entry) {
-			return false;
-		}
+		if (!$entry) return false;
+		if (($entry['access'] ?? 'none') !== 'edit') return false;
+		if (!empty($entry['dellock'])) return false;
 
-		// Enforce delete permission via computed access column
-		if (($entry['access'] ?? 'none') !== 'edit') {
-			return false;
-		}
-
-		// Respect deletion lock if present
-		if (!empty($entry['dellock'])) {
-			return false;
-		}
-
-		// 2) Perform the actual delete (single-table delete, strict where by id)
 		$query = [
 			'type' => 'delete',
 			'table' => 'base3system_sysentry',
@@ -114,11 +164,7 @@ class MemoraEntityDataService implements IEntityDataService {
 				'type' => 'op',
 				'operator' => '=',
 				'params' => [
-					[
-						'type' => 'fld',
-						'table' => 'base3system_sysentry',
-						'field' => 'id'
-					],
+					[ 'type' => 'fld', 'table' => 'base3system_sysentry', 'field' => 'id' ],
 					$id
 				]
 			],
@@ -131,8 +177,7 @@ class MemoraEntityDataService implements IEntityDataService {
 			return false;
 		}
 
-		// DefaultReportQueryService encodes DB errors into the sql string
-		$sql = $result->sql ?? '';
+		$sql = $result->debugSql ?? '';
 		if ($sql !== '' && str_contains($sql, '❌ DB Error:')) {
 			return false;
 		}
@@ -165,7 +210,6 @@ class MemoraEntityDataService implements IEntityDataService {
 					$options['archive'] = $val;
 					break;
 				default:
-					// ignore unknown filters
 					break;
 			}
 		}

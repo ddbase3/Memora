@@ -4,6 +4,7 @@ namespace Memora\Query;
 
 use Memora\Api\IMemoraQuerySchemaProvider;
 use ResourceFoundation\Dto\FieldMetadata;
+use ResourceFoundation\Dto\ForeignKeyReference;
 use ResourceFoundation\Dto\JoinMetadata;
 use ResourceFoundation\Dto\TableMetadata;
 
@@ -15,79 +16,85 @@ class MemoraQuerySchemaProvider implements IMemoraQuerySchemaProvider {
 		$this->schemaDir = rtrim(DIR_PLUGIN, '/\\') . '/Memora/local/Schema';
 	}
 
-	/**
-	 * Returns all available table definitions as TableMetadata objects.
-	 */
 	public function getSchema(): array {
 		$tables = [];
 		foreach (glob($this->schemaDir . '/*.json') as $file) {
-			if ($table = $this->loadTableFromFile($file)) {
-				$tables[] = $table;
-			}
+			$table = $this->loadTableFromFile($file);
+			if ($table) $tables[] = $table;
 		}
 		return $tables;
 	}
 
-	/**
-	 * Returns a single table definition by name.
-	 */
 	public function getTable(string $tableName): ?TableMetadata {
 		$shortName = $this->shortenTableName($tableName);
 		$file = $this->schemaDir . '/' . $shortName . '.json';
-		if (is_file($file)) {
-			return $this->loadTableFromFile($file);
-		}
-		return null;
+		if (!is_file($file)) return null;
+		return $this->loadTableFromFile($file);
 	}
 
-	/**
-	 * Loads and converts a table definition JSON file to TableMetadata.
-	 */
 	private function loadTableFromFile(string $file): ?TableMetadata {
 		$json = file_get_contents($file);
-		if (!$json) {
-			return null;
-		}
+		if ($json === false || $json === '') return null;
 
 		$data = json_decode($json, true);
-		if (!is_array($data) || empty($data['name'])) {
-			return null;
+		if (!is_array($data) || empty($data['name']) || !is_string($data['name'])) return null;
+
+		$fields = [];
+		foreach (($data['fields'] ?? []) as $f) {
+			if (!is_array($f) || empty($f['name']) || !is_string($f['name'])) continue;
+
+			$name = $f['name'];
+			$type = is_string($f['type'] ?? null) ? $f['type'] : 'string';
+
+			// We map "required" to nullable=false; if not required, nullable=true.
+			$required = (bool)($f['required'] ?? false);
+			$nullable = !$required;
+
+			$description = null;
+			if (is_string($f['description'] ?? null)) $description = $f['description'];
+			elseif (is_string($f['label'] ?? null)) $description = $f['label'];
+
+			$fields[] = new FieldMetadata(
+				name: $name,
+				type: $type,
+				description: $description,
+				primaryKey: false,
+				foreignKey: null,
+				nullable: $nullable,
+				tags: is_array($f['tags'] ?? null) ? $f['tags'] : [],
+				alias: is_string($f['alias'] ?? null) ? $f['alias'] : null,
+				sensitive: (bool)($f['sensitive'] ?? false)
+			);
 		}
 
-		$fields = array_map(fn($f) => new FieldMetadata(
-			$f['name'],
-			$f['type'] ?? 'string',
-			$f['label'] ?? $f['name'],
-			$f['required'] ?? false
-		), $data['fields'] ?? []);
+		$joins = [];
+		foreach (($data['joins'] ?? []) as $j) {
+			if (!is_array($j) || empty($j['targetTable']) || !is_string($j['targetTable'])) continue;
 
-		$joins = array_map(fn($j) => new JoinMetadata(
-			$j['targetTable'],
-			$j['on'] ?? [],
-			$j['type'] ?? 'LEFT',
-			$j['meta'] ?? []
-		), $data['joins'] ?? []);
+			$joins[] = new JoinMetadata(
+				targetTable: $j['targetTable'],
+				on: is_array($j['on'] ?? null) ? $j['on'] : [],
+				type: is_string($j['type'] ?? null) ? $j['type'] : 'LEFT',
+				meta: is_array($j['meta'] ?? null) ? $j['meta'] : []
+			);
+		}
 
 		return new TableMetadata(
 			name: $data['name'],
-			label: $data['label'] ?? $data['name'],
-			description: $data['description'] ?? '',
-			domain: $data['domain'] ?? '',
-			category: $data['category'] ?? '',
-			tags: $data['tags'] ?? [],
+			label: is_string($data['label'] ?? null) ? $data['label'] : $data['name'],
+			description: is_string($data['description'] ?? null) ? $data['description'] : null,
+			domain: is_string($data['domain'] ?? null) ? $data['domain'] : '',
+			category: is_string($data['category'] ?? null) ? $data['category'] : '',
+			tags: is_array($data['tags'] ?? null) ? $data['tags'] : [],
 			fields: $fields,
 			joins: $joins,
-			defaultFilters: $data['defaultFilters'] ?? [],
-			position: $data['position'] ?? []
+			defaultFilters: is_array($data['defaultFilters'] ?? null) ? $data['defaultFilters'] : [],
+			sensitive: (bool)($data['sensitive'] ?? false),
+			position: is_array($data['position'] ?? null) ? $data['position'] : []
 		);
 	}
 
-	/**
-	 * Converts a full table name to its short JSON file base name.
-	 * Example: "base3system_sysentry" → "sysentry"
-	 */
 	private function shortenTableName(string $tableName): string {
-		return preg_replace('/^base3system_/', '', $tableName);
+		return (string)preg_replace('/^base3system_/', '', $tableName);
 	}
 }
-

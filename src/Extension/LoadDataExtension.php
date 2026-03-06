@@ -4,12 +4,12 @@ namespace Memora\Extension;
 
 use Base3\Api\ISortable;
 use Memora\Api\IMemoraQueryExtension;
-use ResourceFoundation\Api\IQueryService;
+use Memora\Api\IMemoraQueryService;
 
 class LoadDataExtension implements IMemoraQueryExtension, ISortable {
 
 	public function __construct(
-		private readonly IQueryService $dataqueryservice
+		private readonly IMemoraQueryService $dataqueryservice
 	) {}
 
 	public function isApplicable(array $options): bool {
@@ -116,4 +116,3 @@ class LoadDataExtension implements IMemoraQueryExtension, ISortable {
 		return 990;
 	}
 }
-
