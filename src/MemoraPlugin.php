@@ -6,18 +6,23 @@ use Base3\Api\ICheck;
 use Base3\Api\IClassMap;
 use Base3\Api\IContainer;
 use Base3\Api\IPlugin;
+use Base3\Configuration\Api\IConfiguration;
 use Base3\Usermanager\Api\IUsermanager;
 use DataHawk\Compiler\MysqlReportQueryCompiler;
 use DataHawk\Service\DefaultReportQueryService;
+use FileBridge\Local\LocalFileStorage;
 use Memora\Api\IMemoraProfileService;
 use Memora\Api\IMemoraQueryCompiler;
 use Memora\Api\IMemoraQueryService;
 use Memora\Api\IMemoraQuerySchemaProvider;
 use Memora\Query\MemoraQuerySchemaProvider;
 use Memora\Service\MemoraEntityDataService;
+use Memora\Service\MemoraEntityFileService;
 use Memora\Service\MemoraProfileService;
 use Memora\Service\MemoraQueryServiceAdapter;
 use ResourceFoundation\Api\IEntityDataService;
+use ResourceFoundation\Api\IEntityFileService;
+use ResourceFoundation\Api\IFileStorage;
 
 class MemoraPlugin implements IPlugin, ICheck {
 
@@ -74,6 +79,23 @@ class MemoraPlugin implements IPlugin, ICheck {
 					$c->get(IMemoraQueryService::class),
 					$c->get(IClassMap::class),
 					$c->get(IMemoraProfileService::class)
+				),
+				IContainer::SHARED | IContainer::NOOVERWRITE
+			)
+
+			->set(
+				IEntityFileService::class,
+				fn($c) => new MemoraEntityFileService(
+					$c->get(IEntityDataService::class),
+					$c->get(IFileStorage::class)
+				),
+				IContainer::SHARED | IContainer::NOOVERWRITE
+			)
+
+			->set(
+				IFileStorage::class,
+				fn($c) => new LocalFileStorage(
+					$c->get(IConfiguration::class)
 				),
 				IContainer::SHARED | IContainer::NOOVERWRITE
 			);
