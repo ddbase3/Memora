@@ -185,9 +185,9 @@ class MemoraEntityFileService implements IEntityFileService {
 	private function buildCreateEntryPayload(array $file, array $options): array {
 		$payload = [
 			'type' => 'file',
-			'name' => $file['name'],
+			'name' => $file['filename'],
 			'data' => [
-				'name' => $file['name'],
+				'name' => $file['filename'],
 				'filename' => $file['filename'],
 				'tmpname' => '',
 				'description' => $file['description'],
