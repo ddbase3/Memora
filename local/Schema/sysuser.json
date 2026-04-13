@@ -4,7 +4,7 @@
 	"description": "Registered users of the XRM system with profile and access relationships",
 	"domain": "xrm",
 	"category": "access",
-	"tags": ["user", "account", "member", "profile"],
+	"tags": ["user", "account", "member", "profile", "access"],
 	"fields": [
 		{ "name": "id", "type": "integer", "label": "User ID", "required": true },
 		{ "name": "name", "type": "string", "label": "Username", "required": true },
@@ -53,9 +53,14 @@
 			"on": { "base3system_sysuser.id": "base3system_sysprofile.user_id" },
 			"type": "LEFT",
 			"meta": { "default": true }
+		},
+		{
+			"targetTable": "base3system_sysentryuserdata",
+			"on": { "base3system_sysuser.id": "base3system_sysentryuserdata.user_id" },
+			"type": "INNER",
+			"meta": { "default": true }
 		}
 	],
 	"defaultFilters": [],
-	"position": { "x": 700, "y": 320 }
+	"position": { "x": -200, "y": 120 }
 }
-

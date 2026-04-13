@@ -1,0 +1,36 @@
+{
+	"name": "base3system_systagdesc",
+	"label": "Tag Description",
+	"description": "Descriptions and metadata for system tags",
+	"domain": "xrm",
+	"category": "meta",
+	"tags": ["tag", "description", "meta", "structure"],
+	"fields": [
+		{ "name": "tag", "type": "string", "label": "Tag", "required": true },
+		{ "name": "description", "type": "text", "label": "Tag Description", "required": true },
+		{ "name": "created", "type": "datetime", "label": "Date and time of creation", "required": true },
+		{ "name": "changed", "type": "datetime", "label": "Date and time of last change", "required": true }
+	],
+	"joins": [
+		{
+			"targetTable": "base3system_systag",
+			"on": { "base3system_systagdesc.tag": "base3system_systag.tag" },
+			"type": "INNER",
+			"meta": { "default": true }
+		},
+		{
+			"targetTable": "base3system_sysmoduletag",
+			"on": { "base3system_systagdesc.tag": "base3system_sysmoduletag.tag" },
+			"type": "INNER",
+			"meta": { "default": true }
+		},
+		{
+			"targetTable": "base3system_systagscope",
+			"on": { "base3system_systagdesc.tag": "base3system_systagscope.tag" },
+			"type": "INNER",
+			"meta": { "default": true }
+		}
+	],
+	"defaultFilters": [],
+	"position": { "x": 975, "y": -240 }
+}

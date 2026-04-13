@@ -4,7 +4,7 @@
 	"description": "XRM entry names",
 	"domain": "xrm",
 	"category": "entry",
-	"tags": ["name"],
+	"tags": ["name", "entry"],
 	"fields": [
 		{ "name": "entry_id", "type": "integer", "label": "Entry ID", "required": true },
 		{ "name": "lang_id", "type": "integer", "label": "Language ID", "required": true },
@@ -19,6 +19,5 @@
 		}
 	],
 	"defaultFilters": [],
-	"position": { "x": 250, "y": 140 }
+	"position": { "x": 675, "y": -155 }
 }
-

@@ -4,7 +4,7 @@
 	"description": "Mapping table between users and groups",
 	"domain": "xrm",
 	"category": "access",
-	"tags": ["user", "group", "relation"],
+	"tags": ["user", "group", "relation", "access"],
 	"fields": [
 		{ "name": "user_id", "type": "integer", "label": "User ID", "required": true },
 		{ "name": "group_id", "type": "integer", "label": "Group ID", "required": true }
@@ -24,6 +24,5 @@
 		}
 	],
 	"defaultFilters": [],
-	"position": { "x": 880, "y": 260 }
+	"position": { "x": -500, "y": 450 }
 }
-

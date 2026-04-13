@@ -1,0 +1,30 @@
+{
+	"name": "base3system_sysscope",
+	"label": "System Scope",
+	"description": "Scopes for grouping and assigning system modules",
+	"domain": "xrm",
+	"category": "system",
+	"tags": ["scope", "module", "configuration", "structure"],
+	"fields": [
+		{ "name": "scope", "type": "string", "label": "Scope", "required": true },
+		{ "name": "description", "type": "text", "label": "Scope Description", "required": true },
+		{ "name": "created", "type": "datetime", "label": "Date and time of creation", "required": true },
+		{ "name": "changed", "type": "datetime", "label": "Date and time of last change", "required": true }
+	],
+	"joins": [
+		{
+			"targetTable": "base3system_sysscopemodule",
+			"on": { "base3system_sysscope.scope": "base3system_sysscopemodule.scope" },
+			"type": "INNER",
+			"meta": { "default": true }
+		},
+		{
+			"targetTable": "base3system_systagscope",
+			"on": { "base3system_sysscope.scope": "base3system_systagscope.scope" },
+			"type": "INNER",
+			"meta": { "default": true }
+		}
+	],
+	"defaultFilters": [],
+	"position": { "x": 980, "y": -40 }
+}

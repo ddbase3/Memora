@@ -1,0 +1,28 @@
+{
+	"name": "base3system_sysscopemodule",
+	"label": "Scope Module",
+	"description": "Assignments of modules to scopes",
+	"domain": "xrm",
+	"category": "system",
+	"tags": ["scope", "module", "relation", "structure"],
+	"fields": [
+		{ "name": "scope", "type": "string", "label": "Scope", "required": true },
+		{ "name": "module", "type": "string", "label": "Module Name", "required": true }
+	],
+	"joins": [
+		{
+			"targetTable": "base3system_sysscope",
+			"on": { "base3system_sysscopemodule.scope": "base3system_sysscope.scope" },
+			"type": "INNER",
+			"meta": { "default": true }
+		},
+		{
+			"targetTable": "base3system_sysmodule",
+			"on": { "base3system_sysscopemodule.module": "base3system_sysmodule.module" },
+			"type": "INNER",
+			"meta": { "default": true }
+		}
+	],
+	"defaultFilters": [],
+	"position": { "x": 1290, "y": 160 }
+}

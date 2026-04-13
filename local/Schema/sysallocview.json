@@ -1,10 +1,10 @@
 {
 	"name": "base3system_sysallocview",
 	"label": "XRM Allocation View",
-	"description": "Symmetrische Sicht auf XRM Allocations. Jede Verbindung aus base3system_sysalloc erscheint bidirektional — über entry_id und peer_id.",
+	"description": "Symmetric view of XRM allocations. Each connection from base3system_sysalloc appears bidirectionally — via entry_id and peer_id.",
 	"domain": "xrm",
 	"category": "graph",
-	"tags": ["graph", "allocation", "connection", "view"],
+	"tags": ["graph", "allocation", "connection", "view", "entry"],
 	"fields": [
 		{
 			"name": "id",
@@ -18,14 +18,14 @@
 			"type": "integer",
 			"label": "Entry ID",
 			"required": true,
-			"description": "ID des aktuellen XRM-Eintrags (für Join-Verknüpfung)."
+			"description": "ID of the current XRM entry (used for join mapping)."
 		},
 		{
 			"name": "peer_id",
 			"type": "integer",
 			"label": "Peer Entry ID",
 			"required": true,
-			"description": "ID des verbundenen Eintrags (andere Seite der Beziehung)."
+			"description": "ID of the connected entry (the other side of the relationship)."
 		}
 	],
 	"joins": [
@@ -43,6 +43,5 @@
 		}
 	],
 	"defaultFilters": [],
-	"position": { "x": 730, "y": 300 }
+	"position": { "x": 665, "y": 10 }
 }
-

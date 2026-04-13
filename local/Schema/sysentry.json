@@ -4,7 +4,7 @@
 	"description": "XRM data entries",
 	"domain": "xrm",
 	"category": "entry",
-	"tags": ["entry", "record", "entity"],
+	"tags": ["entry", "record", "entity", "access", "structure"],
 	"fields": [
 		{ "name": "id", "type": "integer", "label": "Entry ID", "required": true },
 		{ "name": "uuid", "type": "binary", "label": "Unique ID", "required": true },
@@ -46,9 +46,9 @@
 		{ "targetTable": "base3system_sysuseraccess", "on": { "base3system_sysentry.id": "base3system_sysuseraccess.entry_id" }, "type": "INNER", "meta": { "default": true } },
 		{ "targetTable": "base3system_syslog", "on": { "base3system_sysentry.id": "base3system_syslog.entry_id" }, "type": "INNER", "meta": { "default": true } },
 		{ "targetTable": "base3system_syscomment", "on": { "base3system_sysentry.id": "base3system_syscomment.entry_id" }, "type": "INNER", "meta": { "default": true } },
-		{ "targetTable": "base3system_sysmetadata", "on": { "base3system_sysentry.id": "base3system_sysmetadata.entry_id" }, "type": "INNER", "meta": { "default": true } }
+		{ "targetTable": "base3system_sysmetadata", "on": { "base3system_sysentry.id": "base3system_sysmetadata.entry_id" }, "type": "INNER", "meta": { "default": true } },
+		{ "targetTable": "base3system_sysentryuserdata", "on": { "base3system_sysentry.id": "base3system_sysentryuserdata.entry_id" }, "type": "INNER", "meta": { "default": true } }
 	],
 	"defaultFilters": [],
-	"position": { "x": 490, "y": 80 }
+	"position": { "x": 390, "y": 120 }
 }
-

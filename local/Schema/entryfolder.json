@@ -4,7 +4,7 @@
 	"description": "Folder or container data records for XRM entries",
 	"domain": "xrm",
 	"category": "data",
-	"tags": ["folder", "container", "structure", "entry"],
+	"tags": ["folder", "container", "group", "entry"],
 	"fields": [
 		{ "name": "id", "type": "integer", "label": "Folder ID", "required": true },
 		{ "name": "name", "type": "string", "label": "Folder name", "required": true },
@@ -21,6 +21,5 @@
 		}
 	],
 	"defaultFilters": [],
-	"position": { "x": 0, "y": 0 }
+	"position": { "x": -500, "y": -210 }
 }
-

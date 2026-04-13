@@ -4,7 +4,7 @@
 	"description": "XRM entry tags",
 	"domain": "xrm",
 	"category": "meta",
-	"tags": ["tag"],
+	"tags": ["tag", "entry", "structure"],
 	"fields": [
 		{ "name": "entry_id", "type": "integer", "label": "Entry ID", "required": true },
 		{ "name": "tag", "type": "string", "label": "Entry tag", "required": true }
@@ -15,9 +15,14 @@
 			"on": { "base3system_systag.entry_id": "base3system_sysentry.id" },
 			"type": "INNER",
 			"meta": { "default": true }
+		},
+		{
+			"targetTable": "base3system_systagdesc",
+			"on": { "base3system_systag.tag": "base3system_systagdesc.tag" },
+			"type": "INNER",
+			"meta": { "default": true }
 		}
 	],
 	"defaultFilters": [],
-	"position": { "x": 730, "y": 40 }
+	"position": { "x": 680, "y": 330 }
 }
-

@@ -1,0 +1,24 @@
+{
+	"name": "base3system_systypedesc",
+	"label": "Entry Type Description",
+	"description": "Localized descriptions for XRM entry types",
+	"domain": "xrm",
+	"category": "entry",
+	"tags": ["type", "description", "structure"],
+	"fields": [
+		{ "name": "type_id", "type": "integer", "label": "Type ID", "required": true },
+		{ "name": "lang_id", "type": "integer", "label": "Language ID", "required": true },
+		{ "name": "name", "type": "string", "label": "Type Name", "required": true },
+		{ "name": "description", "type": "text", "label": "Type Description", "required": true }
+	],
+	"joins": [
+		{
+			"targetTable": "base3system_systype",
+			"on": { "base3system_systypedesc.type_id": "base3system_systype.id" },
+			"type": "INNER",
+			"meta": { "default": true }
+		}
+	],
+	"defaultFilters": [],
+	"position": { "x": 970, "y": 430 }
+}

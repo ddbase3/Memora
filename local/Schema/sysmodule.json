@@ -1,0 +1,38 @@
+{
+	"name": "base3system_sysmodule",
+	"label": "System Module",
+	"description": "System modules and their optional mapping to entry types",
+	"domain": "xrm",
+	"category": "system",
+	"tags": ["module", "type", "configuration", "structure"],
+	"fields": [
+		{ "name": "module", "type": "string", "label": "Module Name", "required": true },
+		{ "name": "type_id", "type": "integer", "label": "Type ID" },
+		{ "name": "single", "type": "boolean", "label": "Single Entry Only", "required": true },
+		{ "name": "description", "type": "text", "label": "Module Description", "required": true },
+		{ "name": "created", "type": "datetime", "label": "Date and time of creation", "required": true },
+		{ "name": "changed", "type": "datetime", "label": "Date and time of last change", "required": true }
+	],
+	"joins": [
+		{
+			"targetTable": "base3system_systype",
+			"on": { "base3system_sysmodule.type_id": "base3system_systype.id" },
+			"type": "INNER",
+			"meta": { "default": true }
+		},
+		{
+			"targetTable": "base3system_sysmoduletag",
+			"on": { "base3system_sysmodule.module": "base3system_sysmoduletag.module" },
+			"type": "INNER",
+			"meta": { "default": true }
+		},
+		{
+			"targetTable": "base3system_sysscopemodule",
+			"on": { "base3system_sysmodule.module": "base3system_sysscopemodule.module" },
+			"type": "INNER",
+			"meta": { "default": true }
+		}
+	],
+	"defaultFilters": [],
+	"position": { "x": 975, "y": 160 }
+}

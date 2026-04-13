@@ -1,0 +1,28 @@
+{
+	"name": "base3system_systagscope",
+	"label": "Tag Scope",
+	"description": "Assignments of tags to scopes",
+	"domain": "xrm",
+	"category": "meta",
+	"tags": ["tag", "scope", "relation", "structure"],
+	"fields": [
+		{ "name": "tag", "type": "string", "label": "Tag", "required": true },
+		{ "name": "scope", "type": "string", "label": "Scope", "required": true }
+	],
+	"joins": [
+		{
+			"targetTable": "base3system_systagdesc",
+			"on": { "base3system_systagscope.tag": "base3system_systagdesc.tag" },
+			"type": "INNER",
+			"meta": { "default": true }
+		},
+		{
+			"targetTable": "base3system_sysscope",
+			"on": { "base3system_systagscope.scope": "base3system_sysscope.scope" },
+			"type": "INNER",
+			"meta": { "default": true }
+		}
+	],
+	"defaultFilters": [],
+	"position": { "x": 1305, "y": -100 }
+}

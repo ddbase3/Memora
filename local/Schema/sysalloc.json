@@ -4,7 +4,7 @@
 	"description": "XRM entry allocations",
 	"domain": "xrm",
 	"category": "graph",
-	"tags": ["graph", "allocation", "edge", "connection"],
+	"tags": ["graph", "allocation", "edge", "connection", "entry"],
 	"fields": [
 		{ "name": "id", "type": "integer", "label": "Allocation ID", "required": true },
 		{ "name": "entry_id_1", "type": "integer", "label": "Entry ID 1", "required": true },
@@ -25,6 +25,5 @@
 		}
 	],
 	"defaultFilters": [],
-	"position": { "x": 730, "y": 150 }
+	"position": { "x": 675, "y": 170 }
 }
-
