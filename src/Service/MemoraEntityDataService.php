@@ -252,29 +252,68 @@ class MemoraEntityDataService implements IEntityDataService {
 			return $options;
 		}
 
-		$expr = $profile['profile'];
+		$expr = (string)$profile['profile'];
 		preg_match_all('/\[(.*?)\]/', $expr, $matches);
 
 		foreach ($matches[1] as $block) {
 			if (!str_contains($block, '=')) continue;
+
 			[$key, $val] = explode('=', $block, 2);
 			$key = trim($key);
-			$vals = array_map('trim', explode(',', $val));
+			$val = trim($val);
 
 			switch ($key) {
 				case 'excludealloc':
 				case 'excludetag':
 				case 'tag':
-					$options[$key] = array_merge($options[$key] ?? [], $vals);
+				case 'module':
+					$options[$key] = $this->mergeOptionList($options[$key] ?? [], $val);
 					break;
+
 				case 'archive':
-					$options['archive'] = $val;
+					if ($val !== '') {
+						$options['archive'] = $val;
+					}
 					break;
+
 				default:
 					break;
 			}
 		}
 
 		return $options;
+	}
+
+	private function mergeOptionList(mixed $current, mixed $append): array {
+		$values = array_merge(
+			$this->normalizeOptionList($current),
+			$this->normalizeOptionList($append)
+		);
+
+		return array_values(array_unique($values));
+	}
+
+	private function normalizeOptionList(mixed $value): array {
+		if (is_array($value)) {
+			$result = [];
+
+			foreach ($value as $item) {
+				foreach ($this->normalizeOptionList($item) as $normalizedItem) {
+					$result[] = $normalizedItem;
+				}
+			}
+
+			return array_values(array_unique($result));
+		}
+
+		$string = trim((string)$value);
+		if ($string === '') {
+			return [];
+		}
+
+		$parts = array_map('trim', explode(',', $string));
+		$parts = array_filter($parts, static fn(string $part): bool => $part !== '');
+
+		return array_values(array_unique($parts));
 	}
 }
