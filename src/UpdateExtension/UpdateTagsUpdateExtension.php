@@ -3,9 +3,14 @@
 namespace Memora\UpdateExtension;
 
 use Base3\Api\ISortable;
+use Memora\Api\IMemoraQueryService;
 use Memora\Api\IMemoraUpdateExtension;
 
 class UpdateTagsUpdateExtension implements IMemoraUpdateExtension, ISortable {
+
+	public function __construct(
+		private readonly IMemoraQueryService $dataqueryservice
+	) {}
 
 	public function isApplicable(array $patch): bool {
 		return !empty($patch['addtags'])
@@ -39,6 +44,8 @@ class UpdateTagsUpdateExtension implements IMemoraUpdateExtension, ISortable {
 		}
 
 		if (array_key_exists('replacetags', $patch)) {
+			$replace = $patch['replacetags'] ?? [];
+
 			$context['transaction_queries'][] = [
 				'type' => 'delete',
 				'table' => 'base3system_systag',
@@ -52,7 +59,8 @@ class UpdateTagsUpdateExtension implements IMemoraUpdateExtension, ISortable {
 				]
 			];
 
-			$replace = $patch['replacetags'] ?? [];
+			$this->appendMissingTagdescQueries($replace, $context);
+
 			if (!empty($replace)) {
 				$values = [];
 				foreach ($replace as $tag) {
@@ -105,6 +113,8 @@ class UpdateTagsUpdateExtension implements IMemoraUpdateExtension, ISortable {
 
 		$add = $patch['addtags'] ?? [];
 		if (!empty($add)) {
+			$this->appendMissingTagdescQueries($add, $context);
+
 			$values = [];
 			foreach ($add as $tag) {
 				$values[] = [
@@ -124,14 +134,93 @@ class UpdateTagsUpdateExtension implements IMemoraUpdateExtension, ISortable {
 
 	public function afterUpdate(array $patch, array &$context): void {}
 
+	private function appendMissingTagdescQueries(array $tags, array &$context): void {
+		$tags = $this->normalizeTagList($tags);
+		if (empty($tags)) {
+			return;
+		}
+
+		$existingTags = $this->loadExistingTagDescriptions($tags);
+		$missingTags = array_values(array_diff($tags, $existingTags));
+
+		if (empty($missingTags)) {
+			return;
+		}
+
+		$now = date('Y-m-d H:i:s');
+		$values = [];
+
+		foreach ($missingTags as $tag) {
+			$values[] = [
+				'tag' => $tag,
+				'description' => $tag,
+				'created' => $now,
+				'changed' => $now
+			];
+		}
+
+		$context['transaction_queries'][] = [
+			'type' => 'insert',
+			'ignore' => true,
+			'table' => 'base3system_systagdesc',
+			'values' => $values
+		];
+	}
+
+	private function loadExistingTagDescriptions(array $tags): array {
+		$tags = $this->normalizeTagList($tags);
+		if (empty($tags)) {
+			return [];
+		}
+
+		$result = $this->dataqueryservice->executeQuery([
+			'type' => 'select',
+			'table' => 'base3system_systagdesc',
+			'fields' => [
+				[
+					'element' => [
+						'type' => 'fld',
+						'table' => 'base3system_systagdesc',
+						'field' => 'tag'
+					],
+					'alias' => 'tag'
+				]
+			],
+			'where' => [
+				'type' => 'op',
+				'operator' => count($tags) === 1 ? '=' : 'IN',
+				'params' => [
+					[
+						'type' => 'fld',
+						'table' => 'base3system_systagdesc',
+						'field' => 'tag'
+					],
+					count($tags) === 1 ? $tags[0] : $tags
+				]
+			]
+		]);
+
+		$existing = [];
+		foreach (($result->rows ?? []) as $row) {
+			if (empty($row['tag'])) continue;
+			$existing[(string)$row['tag']] = true;
+		}
+
+		return array_keys($existing);
+	}
+
 	private function normalizeTags(mixed $value, string $key): array {
 		if (!is_array($value)) {
 			throw new \InvalidArgumentException("updateEntry patch['" . $key . "'] must be an array.");
 		}
 
+		return $this->normalizeTagList($value);
+	}
+
+	private function normalizeTagList(array $tags): array {
 		$normalized = [];
 
-		foreach ($value as $tag) {
+		foreach ($tags as $tag) {
 			if (!is_string($tag)) continue;
 
 			$tag = trim($tag);

@@ -1,6 +1,6 @@
 # Memora
 
-**Memora** is a modular XRM/CRM backend and knowledge graph for the BASE3 framework. It provides a unified entity layer for structured data, relations, metadata, tags, and access control. Built on top of **ResourceFoundation** and backed by **DataHawk** query compilation, Memora offers a flexible and extensible CRUD API for domain entities of many different types.
+**Memora** is a modular XRM/CRM backend and knowledge graph for the BASE3 framework. It provides a unified entity layer for structured data, relations, metadata, tags, access control, and module-based entry semantics. Built on top of **ResourceFoundation** and backed by **DataHawk** query compilation, Memora offers a flexible and extensible CRUD API for domain entities of many different types.
 
 Memora is designed to act as the central data backbone for BASE3-based applications. It can power classic CRM/XRM scenarios, project and contact management, knowledge bases, reporting, workflow automation, and AI-supported applications.
 
@@ -17,7 +17,7 @@ Memora is designed to act as the central data backbone for BASE3-based applicati
 7. [Updating Data](#updating-data)
 8. [Deleting Data](#deleting-data)
 9. [Access Control](#access-control)
-10. [Tags, Metadata, and Typed Data](#tags-metadata-and-typed-data)
+10. [Tags, Metadata, Typed Data, and Modules](#tags-metadata-typed-data-and-modules)
 11. [Relations and Allocations](#relations-and-allocations)
 12. [Profiles and Filtering](#profiles-and-filtering)
 13. [Extension Architecture](#extension-architecture)
@@ -35,6 +35,7 @@ An entity in Memora consists of:
 
 * a **base entry** in `base3system_sysentry`
 * a **type** defined in `base3system_systype`
+* an optional **module context** defined in `base3system_sysmodule`
 * optional **typed payload data** in a type-specific table
 * optional **name** records in `base3system_sysname`
 * optional **tags** in `base3system_systag`
@@ -82,6 +83,29 @@ Every entity has a type alias such as:
 * `company`
 
 The type resolves to a type-specific payload table through `base3system_systype`.
+
+### Module
+
+A module is a higher-level semantic entry configuration stored in `base3system_sysmodule`.
+
+A module can define:
+
+* the target entry type
+* one or more default tags via `base3system_sysmoduletag`
+
+This allows Memora to create or query entries through a more application-oriented concept such as:
+
+* `crmproject`
+* `crmcontact`
+* `crmnote`
+
+instead of always requiring a raw type.
+
+Important design rule:
+
+* a module is primarily a **creation and filtering convenience**, not an immutable property of the entry
+* when an entry is created via `module`, Memora resolves the module to `type` and initial module tags
+* after creation, later tag updates may intentionally change the effective module classification of the entry
 
 ### Typed Data
 
@@ -145,6 +169,7 @@ Memora itself adds:
 
 * entity semantics
 * type resolution
+* module resolution
 * relation handling
 * metadata handling
 * tag handling
@@ -294,6 +319,7 @@ Examples of supported filter semantics include:
 
 * `entry`
 * `type`
+* `module`
 * `tag`
 * `intag`
 * `excludetag`
@@ -301,7 +327,28 @@ Examples of supported filter semantics include:
 * alloc-related filters depending on installed extensions
 * ordering / grouping / limit options depending on installed extensions
 
+### Filter by Module
+
+`module` is supported as a first-class query option.
+
 Example:
+
+```php
+$entries = $memora->getEntries([
+	'module' => 'crmproject',
+	'loadname' => true,
+	'loaddata' => true,
+	'loadtags' => true
+]);
+```
+
+Semantics:
+
+* a single module resolves to a required type and its configured module tags
+* multiple modules are treated as alternative module definitions
+* each individual module block is internally translated to a combination of type and tag filters
+
+### Example with Explicit Filters
 
 ```php
 $entries = $memora->getEntries([
@@ -361,6 +408,7 @@ Creates a new entity and returns its ID.
 The create payload is extension-based. Depending on the installed create extensions, the following keys are typically supported:
 
 * `type`
+* `module`
 * `name`
 * `data`
 * `tags`
@@ -369,7 +417,9 @@ The create payload is extension-based. Depending on the installed create extensi
 * `groupaccess`
 * `metadata`
 
-### Minimal Create Example
+### Create by Type
+
+The classic form uses `type` directly.
 
 ```php
 $newId = $memora->createEntry([
@@ -379,6 +429,34 @@ $newId = $memora->createEntry([
 	]
 ]);
 ```
+
+### Create by Module
+
+A module may be used instead of a raw type.
+
+```php
+$newId = $memora->createEntry([
+	'module' => 'crmproject',
+	'name' => 'Project Phoenix',
+	'tags' => [
+		'important',
+		'customer_a'
+	],
+	'data' => [
+		'name' => 'Project Phoenix',
+		'description' => 'Created through module resolution',
+		'start' => date('Y-m-d'),
+		'expense' => 0
+	]
+]);
+```
+
+Semantics:
+
+* the module is resolved to its configured type
+* the module's configured tags are merged into the create payload
+* explicitly provided tags are preserved and deduplicated
+* after creation, the entry behaves like a normal entry of the resolved type
 
 ### Full Create Example
 
@@ -430,7 +508,7 @@ $newId = $memora->createEntry([
 
 During creation Memora typically performs the following steps:
 
-1. resolve type information
+1. resolve module and/or type information
 2. normalize payload parts
 3. insert base entry
 4. queue additional inserts for name, tags, allocs, access, metadata, typed data
@@ -443,6 +521,7 @@ During creation Memora typically performs the following steps:
 * `created` and `changed` are set automatically.
 * duplicate tags and duplicate access rows are normalized out before insert.
 * typed data is limited to fields that exist in the type table metadata.
+* missing tag descriptions are created automatically before tag rows are inserted.
 
 ---
 
@@ -537,6 +616,8 @@ Rules:
 
 * `replacetags` must not be combined with `addtags` or `removetags`
 * tag values are normalized and deduplicated
+* missing tag descriptions are created automatically before new tag rows are inserted
+* `replacetags` intentionally may remove module-derived tags from the original create operation
 
 #### Allocs
 
@@ -831,7 +912,7 @@ Memora also applies access restrictions at query level through access-related qu
 
 ---
 
-## Tags, Metadata, and Typed Data
+## Tags, Metadata, Typed Data, and Modules
 
 ### Tags
 
@@ -868,6 +949,23 @@ Good use cases:
 * financial values
 * workflow-specific columns
 
+### Modules
+
+Modules provide a higher-level application entry point for:
+
+* UI creation flows
+* module-specific read filters
+* default tag enrichment
+* type abstraction
+
+They are useful when the application wants to think in business contexts instead of raw schema types.
+
+Example:
+
+* module `crmproject`
+* resolves to type `project`
+* adds the tag `crm`
+
 ### Rule of Thumb
 
 Use:
@@ -875,6 +973,7 @@ Use:
 * **typed data** for business fields that belong to the type schema
 * **metadata** for flexible technical or contextual fields
 * **tags** for quick categorization and filtering
+* **modules** for application-level defaults and initial classification at create/query time
 
 ---
 
@@ -934,6 +1033,7 @@ Memora supports profile-based option enrichment through `IMemoraProfileService`.
 
 A profile may transparently append or merge options such as:
 
+* `module`
 * `tag`
 * `excludetag`
 * `excludealloc`
@@ -946,6 +1046,7 @@ Example idea:
 * automatically hide archived entries
 * automatically exclude technical tags
 * automatically narrow queries to a work context
+* automatically bind a user session to a module-specific entry slice
 
 ---
 
@@ -975,7 +1076,9 @@ Examples:
 * `LoadTagsExtension`
 * `LoadMetadataExtension`
 * `LoadAccessExtension`
-* filter extensions
+* `FilterByTypeExtension`
+* `FilterByTagExtension`
+* `FilterByModuleExtension`
 
 ### Create Extensions
 
@@ -988,12 +1091,13 @@ Memora\Api\IMemoraCreateExtension
 Responsibilities:
 
 * validate and normalize create payload parts
-* resolve context such as type information
+* resolve context such as module and type information
 * insert base and related rows
 * contribute transaction statements
 
 Examples:
 
+* `CreateModuleResolverCreateExtension`
 * `CreateTypeResolverCreateExtension`
 * `CreateBaseEntryCreateExtension`
 * `CreateNameCreateExtension`
@@ -1042,7 +1146,7 @@ Examples:
 
 ## Practical End-to-End Examples
 
-### Example: Create and Reload
+### Example: Create and Reload by Type
 
 ```php
 $newId = $memora->createEntry([
@@ -1065,6 +1169,44 @@ $entry = $memora->getEntry($newId, [
 	'loaddata' => true,
 	'loadtags' => true,
 	'loadmetadata' => true
+]);
+```
+
+### Example: Create and Reload by Module
+
+```php
+$newId = $memora->createEntry([
+	'module' => 'crmproject',
+	'name' => 'Project Delta',
+	'tags' => ['new'],
+	'metadata' => [
+		'source' => 'manual',
+		'module' => 'crmproject'
+	],
+	'data' => [
+		'name' => 'Project Delta',
+		'description' => 'Created through module-based README example',
+		'expense' => 0
+	]
+]);
+
+$entry = $memora->getEntry($newId, [
+	'loadtype' => true,
+	'loadname' => true,
+	'loaddata' => true,
+	'loadtags' => true,
+	'loadmetadata' => true
+]);
+```
+
+### Example: Query by Module
+
+```php
+$entries = $memora->getEntries([
+	'module' => 'crmproject',
+	'loadname' => true,
+	'loaddata' => true,
+	'loadtags' => true
 ]);
 ```
 
@@ -1142,6 +1284,7 @@ This is why the API uses:
 * `loadtags` instead of implicit relation loading
 * `setmetadata` instead of silently merging arbitrary top-level keys
 * `replacetags` instead of guessing intended semantics from `tags = [...]`
+* `module` as an explicit create/query concept instead of hidden application heuristics
 
 ### Partial Updates
 
@@ -1161,6 +1304,18 @@ Undirected relations are stored in one canonical row only. Read symmetry is crea
 ### Transactional Mutation
 
 Multi-part create and update operations are executed transactionally so that related changes remain consistent.
+
+### Modules Are Not Immutable
+
+A module-based create operation may initialize an entry with module-derived tags, but later tag updates may intentionally change that classification.
+
+This is by design. Memora treats modules as:
+
+* a creation convenience
+* a query convenience
+* an application-level semantic layer
+
+but not as a permanently enforced invariant on the stored entry.
 
 ---
 
