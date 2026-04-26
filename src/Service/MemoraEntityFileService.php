@@ -356,11 +356,24 @@ class MemoraEntityFileService implements IEntityFileService {
 		if ($uuid === '') {
 			throw new \RuntimeException('Cannot derive tmpname without entry uuid.');
 		}
-		if (strlen($uuid) < 4) {
-			throw new \RuntimeException('Entry uuid too short to derive tmpname: ' . $uuid);
+
+		$storageName = $this->formatUuidFilename($uuid);
+
+		return substr($uuid, 0, 2) . '/' . substr($uuid, 2, 2) . '/' . $storageName;
+	}
+
+	private function formatUuidFilename(string $uuid): string {
+		$hex = strtolower(str_replace('-', '', trim($uuid)));
+
+		if (!preg_match('/^[a-f0-9]{32}$/', $hex)) {
+			return $uuid;
 		}
 
-		return substr($uuid, 0, 2) . '/' . substr($uuid, 2, 2) . '/' . $uuid;
+		return substr($hex, 0, 8) . '-' .
+			substr($hex, 8, 4) . '-' .
+			substr($hex, 12, 4) . '-' .
+			substr($hex, 16, 4) . '-' .
+			substr($hex, 20);
 	}
 
 	private function cleanupFailedCreate(int|string $entryId): void {
