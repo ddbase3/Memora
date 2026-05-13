@@ -34,7 +34,9 @@ class UpdateTypedDataUpdateExtension implements IMemoraUpdateExtension, ISortabl
 			throw new \RuntimeException("Unknown or inaccessible typed data table: " . $tableName);
 		}
 
-		$allowed = $this->getAllowedFieldNames($table);
+		$fieldsByName = $this->getFieldsByName($table);
+		$allowed = array_keys($fieldsByName);
+
 		if (!in_array('id', $allowed, true)) {
 			throw new \RuntimeException("Typed data table '" . $tableName . "' does not contain required primary field 'id'.");
 		}
@@ -43,8 +45,8 @@ class UpdateTypedDataUpdateExtension implements IMemoraUpdateExtension, ISortabl
 		foreach (($patch['setdata'] ?? []) as $key => $value) {
 			if (!is_string($key)) continue;
 			if ($key === 'id') continue;
-			if (!in_array($key, $allowed, true)) continue;
-			$set[$key] = $value;
+			if (!isset($fieldsByName[$key])) continue;
+			$set[$key] = $this->normalizeTypedValue($value, $fieldsByName[$key]);
 		}
 
 		$unset = [];
@@ -52,7 +54,7 @@ class UpdateTypedDataUpdateExtension implements IMemoraUpdateExtension, ISortabl
 			if (!is_string($key)) continue;
 			$key = trim($key);
 			if ($key === '' || $key === 'id') continue;
-			if (!in_array($key, $allowed, true)) continue;
+			if (!isset($fieldsByName[$key])) continue;
 			$unset[$key] = true;
 		}
 
@@ -198,20 +200,30 @@ class UpdateTypedDataUpdateExtension implements IMemoraUpdateExtension, ISortabl
 	}
 
 	/**
-	 * @return string[]
+	 * @return array<string, FieldMetadata>
 	 */
-	private function getAllowedFieldNames(TableMetadata $table): array {
-		$names = [];
+	private function getFieldsByName(TableMetadata $table): array {
+		$fields = [];
 
 		foreach ($table->fields as $field) {
 			if ($field instanceof FieldMetadata) {
-				$names[] = $field->name;
+				$fields[$field->name] = $field;
 				continue;
 			}
 			throw new \RuntimeException("Unexpected field metadata type in table '" . $table->name . "'.");
 		}
 
-		return $names;
+		return $fields;
+	}
+
+	private function normalizeTypedValue(mixed $value, FieldMetadata $field): mixed {
+		$type = strtolower(trim($field->type));
+
+		if (($type === 'date' || $type === 'datetime') && is_string($value) && trim($value) === '') {
+			return null;
+		}
+
+		return $value;
 	}
 
 	public function getPriority(): int {

@@ -36,7 +36,9 @@ class CreateTypedDataCreateExtension implements IMemoraCreateExtension, ISortabl
 			throw new \RuntimeException("Unknown or inaccessible typed data table: " . $tableName);
 		}
 
-		$allowed = $this->getAllowedFieldNames($table);
+		$fieldsByName = $this->getFieldsByName($table);
+		$allowed = array_keys($fieldsByName);
+
 		if (!in_array('id', $allowed, true)) {
 			throw new \RuntimeException("Typed data table '" . $tableName . "' does not contain required primary field 'id'.");
 		}
@@ -48,9 +50,9 @@ class CreateTypedDataCreateExtension implements IMemoraCreateExtension, ISortabl
 		foreach ($data as $key => $val) {
 			if (!is_string($key)) continue;
 			if ($key === 'id') continue;
-			if (!in_array($key, $allowed, true)) continue;
+			if (!isset($fieldsByName[$key])) continue;
 
-			$values[$key] = $val;
+			$values[$key] = $this->normalizeTypedValue($val, $fieldsByName[$key]);
 		}
 
 		if (count($values) <= 1) return;
@@ -65,20 +67,30 @@ class CreateTypedDataCreateExtension implements IMemoraCreateExtension, ISortabl
 	public function afterCreate(array $entry, array &$context): void {}
 
 	/**
-	 * @return string[]
+	 * @return array<string, FieldMetadata>
 	 */
-	private function getAllowedFieldNames(TableMetadata $table): array {
-		$names = [];
+	private function getFieldsByName(TableMetadata $table): array {
+		$fields = [];
 
 		foreach ($table->fields as $field) {
 			if ($field instanceof FieldMetadata) {
-				$names[] = $field->name;
+				$fields[$field->name] = $field;
 				continue;
 			}
 			throw new \RuntimeException("Unexpected field metadata type in table '" . $table->name . "'.");
 		}
 
-		return $names;
+		return $fields;
+	}
+
+	private function normalizeTypedValue(mixed $value, FieldMetadata $field): mixed {
+		$type = strtolower(trim($field->type));
+
+		if (($type === 'date' || $type === 'datetime') && is_string($value) && trim($value) === '') {
+			return null;
+		}
+
+		return $value;
 	}
 
 	public function getPriority(): int {
