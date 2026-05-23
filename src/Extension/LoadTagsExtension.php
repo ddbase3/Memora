@@ -35,14 +35,30 @@ class LoadTagsExtension implements IMemoraQueryExtension, ISortable {
 	}
 
 	public function processResult(array $rows, array $options): array {
-		// Split comma-separated tags into arrays
 		foreach ($rows as &$row) {
-			if (isset($row['tags']) && is_string($row['tags'])) {
-				$row['tags'] = array_unique(array_filter(array_map('trim', explode(',', $row['tags']))));
-			}
+			$row['tags'] = $this->normalizeTags($row['tags'] ?? null);
 		}
 		unset($row);
+
 		return $rows;
+	}
+
+	protected function normalizeTags(mixed $value): array {
+		if ($value === null || $value === '') {
+			return [];
+		}
+
+		if (is_array($value)) {
+			$tags = $value;
+		} else {
+			$tags = explode(',', (string) $value);
+		}
+
+		$tags = array_map('trim', $tags);
+		$tags = array_filter($tags, static fn(string $tag): bool => $tag !== '');
+		$tags = array_unique($tags);
+
+		return array_values($tags);
 	}
 
 	// Implementation of ISortable

@@ -19,7 +19,7 @@ class LoadDataExtension implements IMemoraQueryExtension, ISortable {
 	public function applyToQuery(array $query, array $options): array {
 		$existingAliases = array_column($query['fields'] ?? [], 'alias');
 
-		// Temporär: type_alias (wird später wieder entfernt)
+		// Temporary helper field for grouped payload loading.
 		if (!in_array('type_alias', $existingAliases, true)) {
 			$query['fields'][] = [
 				'element' => [ 'type' => 'fld', 'table' => 'base3system_systype', 'field' => 'alias' ],
@@ -27,7 +27,7 @@ class LoadDataExtension implements IMemoraQueryExtension, ISortable {
 			];
 		}
 
-		// Für Payload-Auflösung
+		// Helper fields for payload table resolution.
 		if (!in_array('type_dbtable', $existingAliases, true)) {
 			$query['fields'][] = [
 				'element' => [ 'type' => 'fld', 'table' => 'base3system_systype', 'field' => 'dbtable' ],
@@ -49,7 +49,6 @@ class LoadDataExtension implements IMemoraQueryExtension, ISortable {
 			return $rows;
 		}
 
-		// Gruppierung nach Typ
 		$typeGroups = [];
 		foreach ($rows as $row) {
 			$type = $row['type_alias'] ?? null;
@@ -58,14 +57,17 @@ class LoadDataExtension implements IMemoraQueryExtension, ISortable {
 			}
 		}
 
-		// Payload pro Typ laden
 		foreach ($typeGroups as $typeAlias => $entries) {
 			$dbtable = $entries[0]['type_dbtable'] ?? null;
 			$primary = $entries[0]['type_primary'] ?? 'id';
 
-			if (!$dbtable) continue;
+			if (!$dbtable || !$primary) continue;
 
-			$ids = array_column($entries, 'id');
+			$ids = array_values(array_filter(
+				array_column($entries, 'id'),
+				static fn($id): bool => $id !== null && $id !== ''
+			));
+
 			if (empty($ids)) continue;
 
 			$payloadQuery = [
@@ -90,20 +92,19 @@ class LoadDataExtension implements IMemoraQueryExtension, ISortable {
 
 			$payloadById = [];
 			foreach ($payloadRows as $p) {
-				if (isset($p[$primary])) {
+				if (array_key_exists($primary, $p)) {
 					$payloadById[$p[$primary]] = $p;
 				}
 			}
 
 			foreach ($rows as &$row) {
-				if (($row['type_alias'] ?? null) === $typeAlias && isset($payloadById[$row['id']])) {
+				if (($row['type_alias'] ?? null) === $typeAlias && array_key_exists($row['id'], $payloadById)) {
 					$row['data'] = $payloadById[$row['id']];
 				}
 			}
 			unset($row);
 		}
 
-		// Entferne interne Hilfsfelder
 		foreach ($rows as &$row) {
 			unset($row['type_alias'], $row['type_dbtable'], $row['type_primary']);
 		}
