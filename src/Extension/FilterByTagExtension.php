@@ -53,7 +53,7 @@ class FilterByTagExtension implements IMemoraQueryExtension, ISortable {
 			];
 		}
 
-		// --- excludetag: NOT IN filter ---
+		// --- excludetag: anti-filter for entries having any of the excluded tags ---
 		if (!empty($options['excludetag'])) {
 			$tags = is_array($options['excludetag']) ? $options['excludetag'] : [$options['excludetag']];
 			$query['where'][] = [
@@ -62,11 +62,37 @@ class FilterByTagExtension implements IMemoraQueryExtension, ISortable {
 				'params' => [
 					[
 						'type' => 'fld',
-						'table' => 'base3system_systag',
-						'field' => 'tag',
-						'variant' => 'optional'
+						'table' => 'base3system_sysentry',
+						'field' => 'id'
 					],
-					$tags
+					[
+						'type' => 'subquery',
+						'query' => [
+							'type' => 'select',
+							'fields' => [
+								[
+									'element' => [
+										'type' => 'fld',
+										'table' => 'base3system_systag',
+										'field' => 'entry_id'
+									]
+								]
+							],
+							'table' => 'base3system_systag',
+							'where' => [
+								'type' => 'op',
+								'operator' => 'IN',
+								'params' => [
+									[
+										'type' => 'fld',
+										'table' => 'base3system_systag',
+										'field' => 'tag'
+									],
+									$tags
+								]
+							]
+						]
+					]
 				]
 			];
 		}
@@ -84,4 +110,3 @@ class FilterByTagExtension implements IMemoraQueryExtension, ISortable {
 		return 130;
 	}
 }
-
