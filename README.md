@@ -248,6 +248,7 @@ $entry = $memora->getEntry(19384, [
 	'loadname' => true,
 	'loaddata' => true,
 	'loadallocs' => true,
+	'loadallocuuids' => true,
 	'loadtags' => true,
 	'loadaccess' => true,
 	'loadmetadata' => true
@@ -300,6 +301,17 @@ Loads the typed payload from the type-specific table.
 #### `loadallocs`
 
 Loads related entry IDs through `base3system_sysallocview`.
+
+#### `loadallocuuids`
+
+Loads related entry UUIDs through `base3system_sysallocview`.
+
+This is useful when consumers need stable external identifiers instead of local numeric entry IDs. The result is exposed as an `allocuuids` array.
+
+`loadallocs` and `loadallocuuids` are intentionally separate:
+
+* `loadallocs` returns local numeric entry IDs
+* `loadallocuuids` returns stable UUID strings of the related entries
 
 #### `loadtags`
 
@@ -380,6 +392,10 @@ A typical fully-loaded entity may look like this:
 	'name' => 'Project Alpha',
 	'tags' => ['crm', 'important'],
 	'allocs' => [19385, 19386],
+	'allocuuids' => [
+		'36cd2ce7cd5f49f4b700d4022f862fe5',
+		'9d4f7f5ad2c14c4292e74afc4f24d87c'
+	],
 	'access' => 'edit',
 	'metadata' => [
 		'source' => 'import',
@@ -1025,6 +1041,52 @@ entry_id = 20, peer_id = 10
 
 This makes relation reads simple while keeping writes normalized.
 
+### Loading Allocation Identifiers
+
+Memora can expose allocation targets in two different forms.
+
+Use `loadallocs` when the application wants local numeric entry IDs:
+
+```php
+$entries = $memora->getEntries([
+	'type' => 'project',
+	'loadallocs' => true
+]);
+```
+
+Result:
+
+```php
+[
+	'id' => 10,
+	'allocs' => [20, 30]
+]
+```
+
+Use `loadallocuuids` when the application needs stable UUID references:
+
+```php
+$entries = $memora->getEntries([
+	'type' => 'project',
+	'loadallocuuids' => true
+]);
+```
+
+Result:
+
+```php
+[
+	'id' => 10,
+	'uuid' => '36cd2ce7cd5f49f4b700d4022f862fe5',
+	'allocuuids' => [
+		'9d4f7f5ad2c14c4292e74afc4f24d87c',
+		'aa477208c4fb4a8f94db7e0875f92f63'
+	]
+]
+```
+
+This avoids N+1 lookups when exported data or external integrations need UUID-based relations.
+
 ---
 
 ## Profiles and Filtering
@@ -1076,6 +1138,8 @@ Examples:
 * `LoadTagsExtension`
 * `LoadMetadataExtension`
 * `LoadAccessExtension`
+* `LoadAllocsExtension`
+* `LoadAllocUuidsExtension`
 * `FilterByTypeExtension`
 * `FilterByTagExtension`
 * `FilterByModuleExtension`
@@ -1322,4 +1386,3 @@ but not as a permanently enforced invariant on the stored entry.
 ## License
 
 Memora is part of the BASE3 ecosystem and distributed under the terms of the **GNU General Public License v3.0 (GPL-3.0)**.
-
