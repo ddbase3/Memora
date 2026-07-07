@@ -1,0 +1,28 @@
+{
+	"name": "base3system_sysgrouprole",
+	"label": "Group-Role Relation",
+	"description": "Mapping table between groups and roles",
+	"domain": "xrm",
+	"category": "access",
+	"tags": ["group", "role", "relation", "access"],
+	"fields": [
+		{ "name": "group_id", "type": "integer", "label": "Group ID", "required": true },
+		{ "name": "role_id", "type": "integer", "label": "Role ID", "required": true }
+	],
+	"joins": [
+		{
+			"targetTable": "base3system_sysgroup",
+			"on": { "base3system_sysgrouprole.group_id": "base3system_sysgroup.id" },
+			"type": "INNER",
+			"meta": { "default": true }
+		},
+		{
+			"targetTable": "base3system_sysrole",
+			"on": { "base3system_sysgrouprole.role_id": "base3system_sysrole.id" },
+			"type": "INNER",
+			"meta": { "default": true }
+		}
+	],
+	"defaultFilters": [],
+	"position": { "x": -500, "y": 850 }
+}

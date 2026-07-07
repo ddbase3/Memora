@@ -1,0 +1,28 @@
+{
+	"name": "base3system_sysuserrole",
+	"label": "User-Role Relation",
+	"description": "Mapping table between users and roles",
+	"domain": "xrm",
+	"category": "access",
+	"tags": ["user", "role", "relation", "access"],
+	"fields": [
+		{ "name": "user_id", "type": "integer", "label": "User ID", "required": true },
+		{ "name": "role_id", "type": "integer", "label": "Role ID", "required": true }
+	],
+	"joins": [
+		{
+			"targetTable": "base3system_sysuser",
+			"on": { "base3system_sysuserrole.user_id": "base3system_sysuser.id" },
+			"type": "INNER",
+			"meta": { "default": true }
+		},
+		{
+			"targetTable": "base3system_sysrole",
+			"on": { "base3system_sysuserrole.role_id": "base3system_sysrole.id" },
+			"type": "INNER",
+			"meta": { "default": true }
+		}
+	],
+	"defaultFilters": [],
+	"position": { "x": -500, "y": 750 }
+}

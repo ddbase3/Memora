@@ -1,0 +1,29 @@
+{
+	"name": "base3system_sysroleaccess",
+	"label": "Role Access",
+	"description": "Entry access granted through roles",
+	"domain": "xrm",
+	"category": "access",
+	"tags": ["role", "entry", "access", "permission"],
+	"fields": [
+		{ "name": "id", "type": "integer", "label": "Access ID", "required": true },
+		{ "name": "entry_id", "type": "integer", "label": "Entry ID", "required": true },
+		{ "name": "role_id", "type": "integer", "label": "Role ID", "required": true }
+	],
+	"joins": [
+		{
+			"targetTable": "base3system_sysentry",
+			"on": { "base3system_sysroleaccess.entry_id": "base3system_sysentry.id" },
+			"type": "INNER",
+			"meta": { "default": true }
+		},
+		{
+			"targetTable": "base3system_sysrole",
+			"on": { "base3system_sysroleaccess.role_id": "base3system_sysrole.id" },
+			"type": "INNER",
+			"meta": { "default": true }
+		}
+	],
+	"defaultFilters": [],
+	"position": { "x": 70, "y": 750 }
+}
