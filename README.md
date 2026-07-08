@@ -23,7 +23,10 @@ Memora is designed to act as the central data backbone for BASE3-based applicati
 13. [Extension Architecture](#extension-architecture)
 14. [Practical End-to-End Examples](#practical-end-to-end-examples)
 15. [Design Notes](#design-notes)
-16. [License](#license)
+16. [Resource Service Layer](#resource-service-layer)
+17. [Role-Based Access](#role-based-access)
+18. [Microservice Readiness](#microservice-readiness)
+19. [License](#license)
 
 ---
 
@@ -43,6 +46,7 @@ An entity in Memora consists of:
 * optional **allocations / relations** in `base3system_sysalloc`
 * optional **user access** in `base3system_sysuseraccess`
 * optional **group access** in `base3system_sysgroupaccess`
+* optional **role access** in `base3system_sysroleaccess`
 
 The goal is to make all of this accessible through a single service:
 
@@ -879,7 +883,7 @@ $after = $memora->getEntry($id, [
 
 ## Access Control
 
-Memora supports user-based and group-based access.
+Memora supports user-based, group-based, and role-based access.
 
 ### User Access Table
 
@@ -925,6 +929,8 @@ Admins receive `edit` directly.
 ### Query Protection
 
 Memora also applies access restrictions at query level through access-related query extensions, so users only see entries they are allowed to access.
+
+Role-based access is described in detail in [Role-Based Access](#role-based-access).
 
 ---
 
@@ -1382,6 +1388,466 @@ This is by design. Memora treats modules as:
 but not as a permanently enforced invariant on the stored entry.
 
 ---
+
+---
+
+## Resource Service Layer
+
+Memora is not only a table set. It is the concrete BASE3 resource backend for XRM-style entity data.
+The public service boundary is intentionally expressed through `ResourceFoundation` interfaces.
+This keeps consumer plugins independent from Memora table names, DataHawk query shapes, and create/update extension verbs.
+
+The main rule is:
+
+```text
+Consumer code depends on ResourceFoundation interfaces.
+Memora provides the concrete implementation.
+Project plugins decide the final binding.
+```
+
+The default Memora plugin binds the ResourceFoundation service slots to Memora implementations with `IContainer::NOOVERWRITE` where the slot is final-facing and replaceable.
+This means Memora can serve as the normal default implementation while a project plugin can deliberately replace a specific service later.
+
+### Service overview
+
+Memora currently provides these ResourceFoundation-backed services:
+
+```text
+ResourceFoundation\Api\IEntityDataService      -> Memora\Service\MemoraEntityDataService
+ResourceFoundation\Api\IEntityFileService      -> Memora\Service\MemoraEntityFileService
+ResourceFoundation\Api\IEntityProfileService   -> Memora\Service\MemoraProfileService
+ResourceFoundation\Api\IEntityAccessService    -> Memora\Service\MemoraAccessService
+ResourceFoundation\Api\IEntityRelationService  -> Memora\Service\MemoraRelationService
+ResourceFoundation\Api\IEntityMetadataService  -> Memora\Service\MemoraMetadataService
+ResourceFoundation\Api\IEntityTagService       -> Memora\Service\MemoraTagService
+ResourceFoundation\Api\IEntityStructureService -> Memora\Service\MemoraStructureService
+ResourceFoundation\Api\IEntityActivityService  -> Memora\Service\MemoraActivityService
+ResourceFoundation\Api\IEntityUserDataService  -> Memora\Service\MemoraUserDataService
+ResourceFoundation\Api\IFileStorage            -> FileBridge\Local\LocalFileStorage
+```
+
+Memora also keeps Memora-specific internal services:
+
+```text
+Memora\Api\IMemoraQuerySchemaProvider
+Memora\Api\IMemoraQueryCompiler
+Memora\Api\IMemoraQueryService
+Memora\Api\IMemoraRoleResolver
+```
+
+These are implementation details of the Memora backend and should not normally be consumed by reusable feature plugins.
+
+### Removed local profile interface
+
+The profile service no longer uses a Memora-local public profile interface.
+There is deliberately no compatibility alias for the old `Memora\Api\IMemoraProfileService`.
+
+Use this instead:
+
+```php
+use ResourceFoundation\Api\IEntityProfileService;
+```
+
+This is intentional. Profiles are a resource concern, not a Memora-only API concern.
+
+### Internal base service
+
+Most concrete Memora services share structured query and table-write behavior.
+That shared behavior lives in:
+
+```text
+Memora\Service\AbstractMemoraTableService
+```
+
+This class is an internal convenience base class. It centralizes repetitive work such as:
+
+```text
+fetchRows()
+fetchRow()
+insertRow()
+insertRows()
+updateRows()
+deleteRows()
+transaction()
+fields()
+fld()
+eq()
+neq()
+in()
+and()
+or()
+normalizeId()
+normalizeIds()
+normalizeStrings()
+```
+
+It should not be used as a public API. It is there to keep service implementations consistent and small.
+Consumer plugins should use ResourceFoundation interfaces instead.
+
+### Entry-aspect services
+
+Several services modify aspects of an entry. These services should normally use the existing `IEntityDataService::updateEntry()` pipeline instead of writing aspect tables manually.
+
+Examples:
+
+```text
+MemoraRelationService  -> addallocs, removeallocs, replaceallocs
+MemoraMetadataService  -> setmetadata, unsetmetadata
+MemoraTagService       -> addtags, removetags, replacetags
+MemoraAccessService    -> replaceuseraccess, replacegroupaccess, replaceroleaccess
+```
+
+This preserves the existing extension pipeline and keeps behavior consistent with direct calls to `MemoraEntityDataService`.
+The extension pipeline remains the single place for transactional mutation, validation, normalization, and permission-sensitive update behavior.
+
+### Direct system-table services
+
+Some services manage Memora system structures that are not normal entry aspects.
+Those services may write directly through structured queries:
+
+```text
+MemoraProfileService    -> base3system_sysprofile
+MemoraAccessService     -> roles, user roles, group roles, user groups
+MemoraStructureService  -> types, modules, scopes
+MemoraActivityService   -> logs and comments
+MemoraUserDataService   -> per-user entry data
+```
+
+This split is deliberate:
+
+```text
+Entry aspect data       -> go through entry create/update pipelines when possible
+Memora control records  -> use direct structured query service methods
+```
+
+### Example: relation service
+
+```php
+use ResourceFoundation\Api\IEntityRelationService;
+
+final class ProjectRelations {
+
+	public function __construct(
+		private readonly IEntityRelationService $relations
+	) {}
+
+	public function replaceProjectEntries(int $projectId, array $entryIds): void {
+		$this->relations->replaceRelations($projectId, $entryIds);
+	}
+}
+```
+
+The service hides the concrete `sysalloc` representation and delegates to the existing Memora update pipeline.
+
+### Example: metadata service
+
+```php
+use ResourceFoundation\Api\IEntityMetadataService;
+
+$metadataService->setMetadata($entryId, [
+	'external_id' => 'abc-123',
+	'source' => 'import'
+]);
+
+$value = $metadataService->getMetadataValue($entryId, 'external_id');
+```
+
+### Example: tag service
+
+```php
+use ResourceFoundation\Api\IEntityTagService;
+
+$tagService->addEntryTags($entryId, ['crm', 'important']);
+$tagService->removeEntryTags($entryId, ['old']);
+$tagService->replaceEntryTags($entryId, ['crm', 'customer']);
+```
+
+### Example: user data service
+
+```php
+use ResourceFoundation\Api\IEntityUserDataService;
+
+$userDataService->setUserData($entryId, [
+	'pinned' => true,
+	'last_opened_tab' => 'details'
+]);
+```
+
+User data is intentionally separate from metadata:
+
+```text
+metadata       = entry-wide, technical, shared
+entryuserdata  = user-specific, personal, UI/state-like
+```
+
+---
+
+## Role-Based Access
+
+Memora entry access can now be granted through users, groups, and roles.
+
+The access sources are:
+
+```text
+base3system_sysuseraccess
+base3system_sysgroupaccess
+base3system_sysroleaccess
+```
+
+Roles and role membership are stored in:
+
+```text
+base3system_sysrole
+base3system_sysuserrole
+base3system_sysgrouprole
+base3system_sysusergroup
+```
+
+### Role semantics
+
+Roles carry their permission semantics directly:
+
+```text
+base3system_sysrole.scope
+base3system_sysrole.permission
+```
+
+For entry access, the expected values are:
+
+```text
+scope = entry
+permission = view | edit
+```
+
+This means the role itself defines what it can do. `sysroleaccess` only connects an entry to a role.
+
+### Why roleaccess does not have a mode field
+
+The user and group access tables use `mode` because their grants are direct entry grants:
+
+```text
+useraccess.mode  = visitor | moderator | owner
+groupaccess.mode = visitor | moderator
+```
+
+Role access works differently:
+
+```text
+role.scope       = entry
+role.permission  = view | edit
+roleaccess       = entry <-> role assignment
+```
+
+That avoids mixing two permission models in the same row.
+
+### Owner remains user-entry specific
+
+`owner` remains a direct user-entry mode and is not modeled as a global role.
+A user is not generally an owner. A user is owner of a specific entry.
+
+So this remains valid:
+
+```text
+base3system_sysuseraccess.mode = owner
+```
+
+But this should not be represented as:
+
+```text
+base3system_sysrole.permission = owner
+```
+
+### Effective access calculation
+
+Effective access is derived from multiple sources.
+A user can receive entry access through:
+
+```text
+1. direct user access
+2. group access through user group membership
+3. role access through direct user role membership
+4. role access through group role membership
+5. admin bypass through the user manager role model
+```
+
+The effective result remains:
+
+```text
+edit
+view
+none
+```
+
+Typical mapping:
+
+```text
+admin                         -> edit
+user owner/moderator          -> edit
+group moderator               -> edit
+role scope=entry permission=edit -> edit
+user/group visitor            -> view
+role scope=entry permission=view -> view
+otherwise                     -> none
+```
+
+### Query protection
+
+The query access extension must include the role path when protecting entry queries.
+The conceptual condition is:
+
+```text
+entry is visible when
+  direct user access matches
+  OR group access matches
+  OR roleaccess points to a role that is assigned to the current user
+  OR roleaccess points to a role that is assigned to a group of the current user
+```
+
+The role path only counts for entry access when:
+
+```text
+sysrole.archive = 0
+sysrole.scope = entry
+sysrole.permission IN (view, edit)
+```
+
+### MemoraRoleResolver
+
+The role resolver is a Memora-internal service:
+
+```text
+Memora\Api\IMemoraRoleResolver
+Memora\Service\MemoraRoleResolver
+```
+
+It centralizes role-related lookup logic:
+
+```text
+current user ids
+current group ids
+direct user role ids
+direct group role ids
+effective user role ids
+effective role rows
+filtered role ids by scope and permission
+```
+
+This keeps role resolution out of controllers, displays, admin pages, and ad-hoc services.
+
+### MemoraAccessService
+
+The ResourceFoundation-facing access service is:
+
+```text
+ResourceFoundation\Api\IEntityAccessService
+Memora\Service\MemoraAccessService
+```
+
+It manages:
+
+```text
+entry user grants
+entry group grants
+entry role grants
+roles
+user-role assignments
+group-role assignments
+user-group assignments
+effective user roles
+```
+
+Example:
+
+```php
+use ResourceFoundation\Api\IEntityAccessService;
+
+$accessService->replaceEntryRoleAccess($entryId, [
+	['role_id' => 10],
+	['role_id' => 11]
+]);
+```
+
+Internally this uses the regular Memora update pipeline:
+
+```php
+$entityDataService->updateEntry($entryId, [
+	'replaceroleaccess' => [
+		['role_id' => 10],
+		['role_id' => 11]
+	]
+]);
+```
+
+### Entry update verbs for role access
+
+The update pipeline supports:
+
+```text
+addroleaccess
+removeroleaccess
+replaceroleaccess
+```
+
+`replaceroleaccess` should not be combined with `addroleaccess` or `removeroleaccess` in the same patch.
+This mirrors the existing replace semantics for user access and group access.
+
+### Create payload for role access
+
+Role access can also be included at create time:
+
+```php
+$id = $memora->createEntry([
+	'type' => 'note',
+	'name' => 'Internal note',
+	'roleaccess' => [
+		['role_id' => 10],
+		['role_id' => 11]
+	]
+]);
+```
+
+### Public/default access
+
+The existing public/default model remains valid:
+
+```text
+public user id  = 1
+default group id = 1
+```
+
+Role access extends the model but does not replace public and group defaults.
+
+---
+
+## Microservice Readiness
+
+The service contracts implemented by Memora are designed to be proxied through a project plugin.
+The provider runtime can expose local Memora services as microservices, while a consumer runtime can bind ResourceFoundation proxies to those remote endpoints.
+
+Provider-side flow:
+
+```text
+remote caller
+  -> microservice receiver
+  -> Base3XrmWebsite microservice class
+  -> ResourceFoundation service interface
+  -> Memora service implementation
+  -> Memora tables / extension pipeline
+```
+
+Consumer-side flow:
+
+```text
+consumer plugin
+  -> ResourceFoundation proxy
+  -> microservice connector
+  -> remote Base3XrmWebsite endpoint
+  -> Memora implementation on provider side
+```
+
+This is why the public service contracts live in ResourceFoundation instead of Memora.
+Memora remains the concrete implementation plugin, while ResourceFoundation defines the stable API surface.
+
 
 ## License
 

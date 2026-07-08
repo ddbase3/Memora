@@ -3,214 +3,203 @@
 namespace Memora\Service;
 
 use Base3\Usermanager\Api\IUsermanager;
-use Memora\Api\IMemoraProfileService;
-use ResourceFoundation\Api\IQueryCompiler;
-use ResourceFoundation\Api\IQueryService;
+use Memora\Api\IMemoraQueryService;
+use ResourceFoundation\Api\IEntityProfileService;
 
 /**
- * Fast and cached implementation of the profile service for Memora.
+ * Memora implementation of the generic ResourceFoundation profile service.
  *
- * Uses DataHawk (QueryCompiler + QueryService) to access
- * the base3system_sysprofile table.
- *
- * request-lifetime caching included (no APCu required).
+ * Profiles are stored in base3system_sysprofile and used to enrich entity query
+ * options with user-specific filters.
  */
-class MemoraProfileService implements IMemoraProfileService {
+class MemoraProfileService extends AbstractMemoraTableService implements IEntityProfileService {
 
 	private ?array $cachedActiveProfile = null;
 	private array $cachedProfiles = [];
 
 	public function __construct(
-		private readonly IUsermanager $usermanager,
-		private readonly IQueryCompiler $compiler,
-		private readonly IQueryService $queryService
-	) {}
+		IMemoraQueryService $dataqueryservice,
+		private readonly IUsermanager $usermanager
+	) {
+		parent::__construct($dataqueryservice);
+	}
 
-	/**
-	 * Returns the active profile for the current user.
-	 * Request-lifetime cached (dramatically faster).
-	 */
 	public function getActiveProfile(?int $userId = null): ?array {
-		// Return cached profile immediately
-		if ($this->cachedActiveProfile !== null) {
-			return $this->cachedActiveProfile;
-		}
-
-		$user = $userId ?? ($this->usermanager->getUser()?->id ?? null);
-		if (!$user) {
+		$userId = $this->resolveUserId($userId);
+		if ($userId === null) {
 			return null;
 		}
 
-		// Build DataHawk query
-		$query = [
-			'type' => 'select',
-			'table' => 'base3system_sysprofile',
-			'fields' => [
-				['element' => ['type' => 'fld', 'table' => 'base3system_sysprofile', 'field' => 'id'],        'alias' => 'id'],
-				['element' => ['type' => 'fld', 'table' => 'base3system_sysprofile', 'field' => 'user_id'],   'alias' => 'user_id'],
-				['element' => ['type' => 'fld', 'table' => 'base3system_sysprofile', 'field' => 'name'],      'alias' => 'name'],
-				['element' => ['type' => 'fld', 'table' => 'base3system_sysprofile', 'field' => 'profile'],   'alias' => 'profile'],
-				['element' => ['type' => 'fld', 'table' => 'base3system_sysprofile', 'field' => 'standard'],  'alias' => 'standard'],
-				['element' => ['type' => 'fld', 'table' => 'base3system_sysprofile', 'field' => 'protected'], 'alias' => 'protected'],
-				['element' => ['type' => 'fld', 'table' => 'base3system_sysprofile', 'field' => 'active'],    'alias' => 'active'],
-				['element' => ['type' => 'fld', 'table' => 'base3system_sysprofile', 'field' => 'archive'],   'alias' => 'archive']
-			],
-			'where' => [[
-				'type' => 'op',
-				'operator' => 'AND',
-				'params' => [
-					[
-						'type' => 'op',
-						'operator' => '=',
-						'params' => [
-							['type' => 'fld', 'table' => 'base3system_sysprofile', 'field' => 'user_id'],
-							$user
-						]
-					],
-					[
-						'type' => 'op',
-						'operator' => 'OR',
-						'params' => [
-							['type' => 'op', 'operator' => '=', 'params' => [
-								['type' => 'fld', 'table' => 'base3system_sysprofile', 'field' => 'active'], 1
-							]],
-							['type' => 'op', 'operator' => '=', 'params' => [
-								['type' => 'fld', 'table' => 'base3system_sysprofile', 'field' => 'standard'], 1
-							]]
-						]
-					]
-				]
-			]],
-			'order' => [
-				['element' => ['type' => 'fld', 'table' => 'base3system_sysprofile', 'field' => 'active'], 'direction' => 'DESC']
-			],
-			'limit' => 1
-		];
+		if ($this->cachedActiveProfile !== null && (int)($this->cachedActiveProfile['user_id'] ?? 0) === $userId) {
+			return $this->cachedActiveProfile;
+		}
 
-		// Execute once per request
-		$result = $this->queryService->executeQuery($query);
-		$this->cachedActiveProfile = $result->rows[0] ?? null;
+		$where = $this->and([
+			$this->eq('base3system_sysprofile', 'user_id', $userId),
+			$this->or([
+				$this->eq('base3system_sysprofile', 'active', 1),
+				$this->eq('base3system_sysprofile', 'standard', 1)
+			])
+		]);
+
+		$this->cachedActiveProfile = $this->fetchRow(
+			'base3system_sysprofile',
+			$this->profileFields(),
+			$where,
+			[
+				['element' => $this->fld('base3system_sysprofile', 'active'), 'direction' => 'DESC'],
+				['element' => $this->fld('base3system_sysprofile', 'standard'), 'direction' => 'DESC'],
+				['element' => $this->fld('base3system_sysprofile', 'name'), 'direction' => 'ASC']
+			]
+		);
 
 		return $this->cachedActiveProfile;
 	}
 
-	/**
-	 * Returns all profiles of a user.
-	 * Cached per request per user.
-	 */
 	public function getProfiles(?int $userId = null, bool $includeArchived = false): array {
-		$user = $userId ?? ($this->usermanager->getUser()?->id ?? null);
-		if (!$user) {
+		$userId = $this->resolveUserId($userId);
+		if ($userId === null) {
 			return [];
 		}
 
-		$cacheKey = $user . '-' . ($includeArchived ? 'with_archived' : 'no_archived');
+		$cacheKey = $userId . ':' . ($includeArchived ? 'all' : 'active');
 		if (isset($this->cachedProfiles[$cacheKey])) {
 			return $this->cachedProfiles[$cacheKey];
 		}
 
-		$where = [[
-			'type' => 'op',
-			'operator' => '=',
-			'params' => [
-				['type' => 'fld', 'table' => 'base3system_sysprofile', 'field' => 'user_id'],
-				$user
-			]
-		]];
-
+		$where = [$this->eq('base3system_sysprofile', 'user_id', $userId)];
 		if (!$includeArchived) {
-			$where[] = [
-				'type' => 'op',
-				'operator' => '=',
-				'params' => [
-					['type' => 'fld', 'table' => 'base3system_sysprofile', 'field' => 'archive'],
-					0
-				]
-			];
+			$where[] = $this->eq('base3system_sysprofile', 'archive', 0);
 		}
 
-		$query = [
-			'type' => 'select',
-			'table' => 'base3system_sysprofile',
-			'fields' => [
-				['element' => ['type' => 'fld', 'table' => 'base3system_sysprofile', 'field' => 'id'],       'alias' => 'id'],
-				['element' => ['type' => 'fld', 'table' => 'base3system_sysprofile', 'field' => 'name'],     'alias' => 'name'],
-				['element' => ['type' => 'fld', 'table' => 'base3system_sysprofile', 'field' => 'profile'],  'alias' => 'profile'],
-				['element' => ['type' => 'fld', 'table' => 'base3system_sysprofile', 'field' => 'active'],   'alias' => 'active'],
-				['element' => ['type' => 'fld', 'table' => 'base3system_sysprofile', 'field' => 'archive'], 'alias' => 'archive']
-			],
-			'where' => [[
-				'type' => 'op',
-				'operator' => 'AND',
-				'params' => $where
-			]],
-			'order' => [
-				['element' => ['type' => 'fld', 'table' => 'base3system_sysprofile', 'field' => 'active'], 'direction' => 'DESC'],
-				['element' => ['type' => 'fld', 'table' => 'base3system_sysprofile', 'field' => 'name'],   'direction' => 'ASC']
+		$this->cachedProfiles[$cacheKey] = $this->fetchRows(
+			'base3system_sysprofile',
+			$this->profileFields(),
+			$this->and($where),
+			[
+				['element' => $this->fld('base3system_sysprofile', 'active'), 'direction' => 'DESC'],
+				['element' => $this->fld('base3system_sysprofile', 'standard'), 'direction' => 'DESC'],
+				['element' => $this->fld('base3system_sysprofile', 'name'), 'direction' => 'ASC']
 			]
-		];
+		);
 
-		$sql = $this->compiler->compile($query);
-		$result = $this->queryService->executeQuery($sql);
-
-		$this->cachedProfiles[$cacheKey] = $result;
-		return $result;
+		return $this->cachedProfiles[$cacheKey];
 	}
 
-	/**
-	 * Sets a profile as active and correctly invalidates all caches.
-	 */
+	public function createProfile(int $userId, array $profile): int|string {
+		$userId = $this->normalizeId($userId);
+		if ($userId === null) {
+			throw new \InvalidArgumentException('createProfile requires a valid user id.');
+		}
+
+		$name = trim((string)($profile['name'] ?? ''));
+		if ($name === '') {
+			throw new \InvalidArgumentException("createProfile requires profile['name'].");
+		}
+
+		$values = [
+			'user_id' => $userId,
+			'name' => $name,
+			'profile' => (string)($profile['profile'] ?? ''),
+			'standard' => !empty($profile['standard']) ? 1 : 0,
+			'protected' => !empty($profile['protected']) ? 1 : 0,
+			'active' => !empty($profile['active']) ? 1 : 0,
+			'archive' => !empty($profile['archive']) ? 1 : 0
+		];
+
+		$insertId = $this->insertRow('base3system_sysprofile', $values);
+		$this->clearCache();
+
+		return $insertId ?? 0;
+	}
+
+	public function updateProfile(int|string $profileId, array $patch): void {
+		$profileId = $this->normalizeId($profileId);
+		if ($profileId === null) {
+			throw new \InvalidArgumentException('updateProfile requires a valid profile id.');
+		}
+
+		$set = $this->filterProfilePatch($patch);
+		if (empty($set)) {
+			return;
+		}
+
+		$this->updateRows(
+			'base3system_sysprofile',
+			$set,
+			$this->eq('base3system_sysprofile', 'id', $profileId),
+			1
+		);
+		$this->clearCache();
+	}
+
+	public function archiveProfile(int|string $profileId): void {
+		$this->updateProfile($profileId, ['archive' => 1, 'active' => 0]);
+	}
+
 	public function setActiveProfile(int $userId, int $profileId): void {
-		// Invalidate both caches
+		$userId = $this->normalizeId($userId);
+		$profileId = $this->normalizeId($profileId);
+
+		if ($userId === null || $profileId === null) {
+			throw new \InvalidArgumentException('setActiveProfile requires valid user and profile ids.');
+		}
+
+		$this->transaction([
+			[
+				'type' => 'update',
+				'table' => 'base3system_sysprofile',
+				'set' => ['active' => 0],
+				'where' => $this->eq('base3system_sysprofile', 'user_id', $userId)
+			],
+			[
+				'type' => 'update',
+				'table' => 'base3system_sysprofile',
+				'set' => ['active' => 1],
+				'where' => $this->and([
+					$this->eq('base3system_sysprofile', 'id', $profileId),
+					$this->eq('base3system_sysprofile', 'user_id', $userId)
+				]),
+				'limit' => 1
+			]
+		]);
+
+		$this->clearCache();
+	}
+
+	private function resolveUserId(?int $userId): ?int {
+		if ($userId !== null) {
+			return $this->normalizeId($userId);
+		}
+
+		$user = $this->usermanager->getUser();
+		return $user && !empty($user->id) ? (int)$user->id : null;
+	}
+
+	private function profileFields(): array {
+		return ['id', 'user_id', 'name', 'profile', 'standard', 'protected', 'active', 'archive'];
+	}
+
+	private function filterProfilePatch(array $patch): array {
+		$set = [];
+
+		foreach (['name', 'profile'] as $field) {
+			if (array_key_exists($field, $patch)) {
+				$set[$field] = (string)$patch[$field];
+			}
+		}
+
+		foreach (['standard', 'protected', 'active', 'archive'] as $field) {
+			if (array_key_exists($field, $patch)) {
+				$set[$field] = !empty($patch[$field]) ? 1 : 0;
+			}
+		}
+
+		return $set;
+	}
+
+	private function clearCache(): void {
 		$this->cachedActiveProfile = null;
 		$this->cachedProfiles = [];
-
-		// Deactivate all profiles for this user
-		$deactivate = [
-			'table' => 'base3system_sysprofile',
-			'type' => 'update',
-			'set' => [['field' => 'active', 'value' => 0]],
-			'where' => [[
-				'type' => 'op',
-				'operator' => '=',
-				'params' => [
-					['type' => 'fld', 'table' => 'base3system_sysprofile', 'field' => 'user_id'],
-					$userId
-				]
-			]]
-		];
-
-		$this->queryService->executeQuery($this->compiler->compile($deactivate));
-
-		// Activate selected profile
-		$activate = [
-			'table' => 'base3system_sysprofile',
-			'type' => 'update',
-			'set' => [['field' => 'active', 'value' => 1]],
-			'where' => [[
-				'type' => 'op',
-				'operator' => 'AND',
-				'params' => [
-					[
-						'type' => 'op',
-						'operator' => '=',
-						'params' => [
-							['type' => 'fld', 'table' => 'base3system_sysprofile', 'field' => 'id'],
-							$profileId
-						]
-					],
-					[
-						'type' => 'op',
-						'operator' => '=',
-						'params' => [
-							['type' => 'fld', 'table' => 'base3system_sysprofile', 'field' => 'user_id'],
-							$userId
-						]
-					]
-				]
-			]]
-		];
-
-		$this->queryService->executeQuery($this->compiler->compile($activate));
 	}
 }

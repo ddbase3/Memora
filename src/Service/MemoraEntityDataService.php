@@ -4,11 +4,11 @@ namespace Memora\Service;
 
 use Base3\Api\IClassMap;
 use Memora\Api\IMemoraCreateExtension;
-use Memora\Api\IMemoraProfileService;
 use Memora\Api\IMemoraQueryExtension;
 use Memora\Api\IMemoraQueryService;
 use Memora\Api\IMemoraUpdateExtension;
 use ResourceFoundation\Api\IEntityDataService;
+use ResourceFoundation\Api\IEntityProfileService;
 use ResourceFoundation\Exception\AccessDeniedException;
 use ResourceFoundation\Exception\QueryValidationException;
 
@@ -17,7 +17,7 @@ class MemoraEntityDataService implements IEntityDataService {
 	public function __construct(
 		private readonly IMemoraQueryService $dataqueryservice,
 		private readonly IClassMap $classmap,
-		private readonly IMemoraProfileService $profiles
+		private readonly IEntityProfileService $profiles
 	) {}
 
 	public function getEntries(array $options = []): array {

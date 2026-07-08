@@ -11,17 +11,33 @@ use Base3\Usermanager\Api\IUsermanager;
 use DataHawk\Compiler\MysqlReportQueryCompiler;
 use DataHawk\Service\DefaultReportQueryService;
 use FileBridge\Local\LocalFileStorage;
-use Memora\Api\IMemoraProfileService;
 use Memora\Api\IMemoraQueryCompiler;
-use Memora\Api\IMemoraQueryService;
 use Memora\Api\IMemoraQuerySchemaProvider;
+use Memora\Api\IMemoraQueryService;
+use Memora\Api\IMemoraRoleResolver;
 use Memora\Query\MemoraQuerySchemaProvider;
+use Memora\Service\MemoraAccessService;
+use Memora\Service\MemoraActivityService;
 use Memora\Service\MemoraEntityDataService;
 use Memora\Service\MemoraEntityFileService;
+use Memora\Service\MemoraMetadataService;
 use Memora\Service\MemoraProfileService;
 use Memora\Service\MemoraQueryServiceAdapter;
+use Memora\Service\MemoraRelationService;
+use Memora\Service\MemoraRoleResolver;
+use Memora\Service\MemoraStructureService;
+use Memora\Service\MemoraTagService;
+use Memora\Service\MemoraUserDataService;
+use ResourceFoundation\Api\IEntityAccessService;
+use ResourceFoundation\Api\IEntityActivityService;
 use ResourceFoundation\Api\IEntityDataService;
 use ResourceFoundation\Api\IEntityFileService;
+use ResourceFoundation\Api\IEntityMetadataService;
+use ResourceFoundation\Api\IEntityProfileService;
+use ResourceFoundation\Api\IEntityRelationService;
+use ResourceFoundation\Api\IEntityStructureService;
+use ResourceFoundation\Api\IEntityTagService;
+use ResourceFoundation\Api\IEntityUserDataService;
 use ResourceFoundation\Api\IFileStorage;
 
 class MemoraPlugin implements IPlugin, ICheck {
@@ -64,13 +80,21 @@ class MemoraPlugin implements IPlugin, ICheck {
 			)
 
 			->set(
-				IMemoraProfileService::class,
-				fn($c) => new MemoraProfileService(
-					$c->get(IUsermanager::class),
-					$c->get(IMemoraQueryCompiler::class),
-					$c->get(IMemoraQueryService::class)
+				IMemoraRoleResolver::class,
+				fn($c) => new MemoraRoleResolver(
+					$c->get(IMemoraQueryService::class),
+					$c->get(IUsermanager::class)
 				),
 				IContainer::SHARED
+			)
+
+			->set(
+				IEntityProfileService::class,
+				fn($c) => new MemoraProfileService(
+					$c->get(IMemoraQueryService::class),
+					$c->get(IUsermanager::class)
+				),
+				IContainer::SHARED | IContainer::NOOVERWRITE
 			)
 
 			->set(
@@ -78,7 +102,7 @@ class MemoraPlugin implements IPlugin, ICheck {
 				fn($c) => new MemoraEntityDataService(
 					$c->get(IMemoraQueryService::class),
 					$c->get(IClassMap::class),
-					$c->get(IMemoraProfileService::class)
+					$c->get(IEntityProfileService::class)
 				),
 				IContainer::SHARED | IContainer::NOOVERWRITE
 			)
@@ -88,6 +112,69 @@ class MemoraPlugin implements IPlugin, ICheck {
 				fn($c) => new MemoraEntityFileService(
 					$c->get(IEntityDataService::class),
 					$c->get(IFileStorage::class)
+				),
+				IContainer::SHARED | IContainer::NOOVERWRITE
+			)
+
+			->set(
+				IEntityAccessService::class,
+				fn($c) => new MemoraAccessService(
+					$c->get(IMemoraQueryService::class),
+					$c->get(IEntityDataService::class),
+					$c->get(IMemoraRoleResolver::class)
+				),
+				IContainer::SHARED | IContainer::NOOVERWRITE
+			)
+
+			->set(
+				IEntityRelationService::class,
+				fn($c) => new MemoraRelationService(
+					$c->get(IMemoraQueryService::class),
+					$c->get(IEntityDataService::class)
+				),
+				IContainer::SHARED | IContainer::NOOVERWRITE
+			)
+
+			->set(
+				IEntityMetadataService::class,
+				fn($c) => new MemoraMetadataService(
+					$c->get(IMemoraQueryService::class),
+					$c->get(IEntityDataService::class)
+				),
+				IContainer::SHARED | IContainer::NOOVERWRITE
+			)
+
+			->set(
+				IEntityTagService::class,
+				fn($c) => new MemoraTagService(
+					$c->get(IMemoraQueryService::class),
+					$c->get(IEntityDataService::class)
+				),
+				IContainer::SHARED | IContainer::NOOVERWRITE
+			)
+
+			->set(
+				IEntityStructureService::class,
+				fn($c) => new MemoraStructureService(
+					$c->get(IMemoraQueryService::class)
+				),
+				IContainer::SHARED | IContainer::NOOVERWRITE
+			)
+
+			->set(
+				IEntityActivityService::class,
+				fn($c) => new MemoraActivityService(
+					$c->get(IMemoraQueryService::class),
+					$c->get(IUsermanager::class)
+				),
+				IContainer::SHARED | IContainer::NOOVERWRITE
+			)
+
+			->set(
+				IEntityUserDataService::class,
+				fn($c) => new MemoraUserDataService(
+					$c->get(IMemoraQueryService::class),
+					$c->get(IUsermanager::class)
 				),
 				IContainer::SHARED | IContainer::NOOVERWRITE
 			)
