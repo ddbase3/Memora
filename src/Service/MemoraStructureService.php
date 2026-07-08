@@ -157,6 +157,42 @@ class MemoraStructureService extends AbstractMemoraTableService implements IEnti
 		return $name;
 	}
 
+	public function getScopeModules(?string $scope = null): array {
+		$scope = $scope !== null ? trim($scope) : null;
+		$where = null;
+		if ($scope !== null && $scope !== '') {
+			$where = $this->eq('base3system_sysscopemodule', 'scope', $scope);
+		}
+
+		return $this->fetchRows(
+			'base3system_sysscopemodule',
+			['scope', 'module'],
+			$where,
+			[
+				['element' => $this->fld('base3system_sysscopemodule', 'scope'), 'direction' => 'ASC'],
+				['element' => $this->fld('base3system_sysscopemodule', 'module'), 'direction' => 'ASC']
+			]
+		);
+	}
+
+	public function getModuleScopes(?string $module = null): array {
+		$module = $module !== null ? trim($module) : null;
+		$where = null;
+		if ($module !== null && $module !== '') {
+			$where = $this->eq('base3system_sysscopemodule', 'module', $module);
+		}
+
+		return $this->fetchRows(
+			'base3system_sysscopemodule',
+			['module', 'scope'],
+			$where,
+			[
+				['element' => $this->fld('base3system_sysscopemodule', 'module'), 'direction' => 'ASC'],
+				['element' => $this->fld('base3system_sysscopemodule', 'scope'), 'direction' => 'ASC']
+			]
+		);
+	}
+
 	public function assignModuleToScope(string $module, string $scope): void {
 		$this->insertRow('base3system_sysscopemodule', [
 			'module' => $this->requireString($module, 'module'),

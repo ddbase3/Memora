@@ -83,6 +83,24 @@ class MemoraTagService extends AbstractMemoraTableService implements IEntityTagS
 		);
 	}
 
+	public function getModuleTags(?string $module = null): array {
+		$module = $module !== null ? trim($module) : null;
+		$where = null;
+		if ($module !== null && $module !== '') {
+			$where = $this->eq('base3system_sysmoduletag', 'module', $module);
+		}
+
+		return $this->fetchRows(
+			'base3system_sysmoduletag',
+			['module', 'tag'],
+			$where,
+			[
+				['element' => $this->fld('base3system_sysmoduletag', 'module'), 'direction' => 'ASC'],
+				['element' => $this->fld('base3system_sysmoduletag', 'tag'), 'direction' => 'ASC']
+			]
+		);
+	}
+
 	public function describeTag(string $tag, string $description): void {
 		$tag = $this->requireString($tag, 'tag');
 		$existing = $this->fetchRow('base3system_systagdesc', ['tag'], $this->eq('base3system_systagdesc', 'tag', $tag));
