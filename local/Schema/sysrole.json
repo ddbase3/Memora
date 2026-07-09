@@ -1,41 +1,91 @@
 {
 	"name": "base3system_sysrole",
 	"label": "System Role",
-	"description": "Reusable roles with a scope and permission for users, groups, and entry access",
+	"description": "Reusable roles for users and groups. Permissions are assigned through base3system_sysrolepermission.",
 	"domain": "xrm",
 	"category": "access",
-	"tags": ["role", "access", "permission", "scope"],
+	"tags": [
+		"role",
+		"access",
+		"permission"
+	],
 	"fields": [
-		{ "name": "id", "type": "integer", "label": "Role ID", "required": true },
-		{ "name": "name", "type": "string", "label": "Role Name", "required": true },
-		{ "name": "scope", "type": "string", "label": "Role Scope", "required": true },
-		{ "name": "permission", "type": "string", "label": "Role Permission", "required": true },
-		{ "name": "label", "type": "string", "label": "Role Label" },
-		{ "name": "info", "type": "text", "label": "Role Information" },
-		{ "name": "archive", "type": "boolean", "label": "Role Archived", "required": true },
-		{ "name": "created", "type": "datetime", "label": "Role Created", "required": false },
-		{ "name": "changed", "type": "datetime", "label": "Last Change", "required": false }
+		{
+			"name": "id",
+			"type": "integer",
+			"label": "Role ID",
+			"required": true
+		},
+		{
+			"name": "name",
+			"type": "string",
+			"label": "Role Name",
+			"required": true
+		},
+		{
+			"name": "label",
+			"type": "string",
+			"label": "Role Label"
+		},
+		{
+			"name": "info",
+			"type": "text",
+			"label": "Role Information"
+		},
+		{
+			"name": "archive",
+			"type": "boolean",
+			"label": "Role Archived",
+			"required": true
+		},
+		{
+			"name": "created",
+			"type": "datetime",
+			"label": "Role Created",
+			"required": false
+		},
+		{
+			"name": "changed",
+			"type": "datetime",
+			"label": "Last Change",
+			"required": false
+		}
 	],
 	"joins": [
 		{
-			"targetTable": "base3system_sysroleaccess",
-			"on": { "base3system_sysrole.id": "base3system_sysroleaccess.role_id" },
+			"targetTable": "base3system_sysrolepermission",
+			"on": {
+				"base3system_sysrole.id": "base3system_sysrolepermission.role_id"
+			},
 			"type": "LEFT",
-			"meta": { "default": true }
+			"meta": {
+				"default": true
+			}
 		},
 		{
 			"targetTable": "base3system_sysuserrole",
-			"on": { "base3system_sysrole.id": "base3system_sysuserrole.role_id" },
+			"on": {
+				"base3system_sysrole.id": "base3system_sysuserrole.role_id"
+			},
 			"type": "LEFT",
-			"meta": { "default": true }
+			"meta": {
+				"default": true
+			}
 		},
 		{
 			"targetTable": "base3system_sysgrouprole",
-			"on": { "base3system_sysrole.id": "base3system_sysgrouprole.role_id" },
+			"on": {
+				"base3system_sysrole.id": "base3system_sysgrouprole.role_id"
+			},
 			"type": "LEFT",
-			"meta": { "default": true }
+			"meta": {
+				"default": true
+			}
 		}
 	],
 	"defaultFilters": [],
-	"position": { "x": -205, "y": 750 }
+	"position": {
+		"x": -205,
+		"y": 750
+	}
 }

@@ -4,6 +4,7 @@ namespace Memora\Extension;
 
 use Base3\Api\ISortable;
 use Base3\Usermanager\Api\IUsermanager;
+use Base3\Usermanager\Permission;
 use Memora\Api\IMemoraQueryExtension;
 
 class LoadAccessExtension implements IMemoraQueryExtension, ISortable {
@@ -13,8 +14,6 @@ class LoadAccessExtension implements IMemoraQueryExtension, ISortable {
 
 	/** Default group ID for all authenticated members */
 	private const DEFAULT_GROUP_ID = 1;
-
-	private const ENTRY_ROLE_SCOPE = 'entry';
 
 	public function __construct(private readonly IUsermanager $usermanager) {}
 
@@ -26,7 +25,7 @@ class LoadAccessExtension implements IMemoraQueryExtension, ISortable {
 		$user = $this->usermanager->getUser();
 
 		// --- Admins always have edit access ---
-		if ($user && $user->role === 'admin') {
+		if ($this->hasEntryAdminPermission()) {
 			$query['fields'][] = [
 				'element' => 'edit',
 				'alias' => 'access'
@@ -94,133 +93,6 @@ class LoadAccessExtension implements IMemoraQueryExtension, ISortable {
 							['type' => 'fld', 'tablealias' => 'ga', 'field' => 'group_id'],
 							$groupIds
 						]
-					]
-				]
-			]
-		];
-
-		// Join roleaccess
-		$query['leftjoin'][] = [
-			'table' => 'base3system_sysroleaccess',
-			'alias' => 'ra',
-			'on' => [
-				'type' => 'op',
-				'operator' => '=',
-				'params' => [
-					['type' => 'fld', 'tablealias' => 'ra', 'field' => 'entry_id'],
-					['type' => 'fld', 'table' => 'base3system_sysentry', 'field' => 'id']
-				]
-			]
-		];
-
-		// Join roles for entry-scoped permissions
-		$query['leftjoin'][] = [
-			'table' => 'base3system_sysrole',
-			'alias' => 'r',
-			'on' => [
-				'type' => 'op',
-				'operator' => 'AND',
-				'params' => [
-					[
-						'type' => 'op',
-						'operator' => '=',
-						'params' => [
-							['type' => 'fld', 'tablealias' => 'r', 'field' => 'id'],
-							['type' => 'fld', 'tablealias' => 'ra', 'field' => 'role_id']
-						]
-					],
-					[
-						'type' => 'op',
-						'operator' => '=',
-						'params' => [
-							['type' => 'fld', 'tablealias' => 'r', 'field' => 'scope'],
-							self::ENTRY_ROLE_SCOPE
-						]
-					],
-					[
-						'type' => 'op',
-						'operator' => '=',
-						'params' => [
-							['type' => 'fld', 'tablealias' => 'r', 'field' => 'archive'],
-							0
-						]
-					]
-				]
-			]
-		];
-
-		// Join direct user roles
-		$query['leftjoin'][] = [
-			'table' => 'base3system_sysuserrole',
-			'alias' => 'ur',
-			'on' => [
-				'type' => 'op',
-				'operator' => 'AND',
-				'params' => [
-					[
-						'type' => 'op',
-						'operator' => '=',
-						'params' => [
-							['type' => 'fld', 'tablealias' => 'ur', 'field' => 'role_id'],
-							['type' => 'fld', 'tablealias' => 'r', 'field' => 'id']
-						]
-					],
-					[
-						'type' => 'op',
-						'operator' => 'IN',
-						'params' => [
-							['type' => 'fld', 'tablealias' => 'ur', 'field' => 'user_id'],
-							$userIds
-						]
-					]
-				]
-			]
-		];
-
-		// Join group roles
-		$query['leftjoin'][] = [
-			'table' => 'base3system_sysgrouprole',
-			'alias' => 'gr',
-			'on' => [
-				'type' => 'op',
-				'operator' => 'AND',
-				'params' => [
-					[
-						'type' => 'op',
-						'operator' => '=',
-						'params' => [
-							['type' => 'fld', 'tablealias' => 'gr', 'field' => 'role_id'],
-							['type' => 'fld', 'tablealias' => 'r', 'field' => 'id']
-						]
-					],
-					[
-						'type' => 'op',
-						'operator' => 'IN',
-						'params' => [
-							['type' => 'fld', 'tablealias' => 'gr', 'field' => 'group_id'],
-							$groupIds
-						]
-					]
-				]
-			]
-		];
-
-		$roleMembershipCondition = [
-			'type' => 'op',
-			'operator' => 'OR',
-			'params' => [
-				[
-					'type' => 'op',
-					'operator' => 'IS NOT NULL',
-					'params' => [
-						['type' => 'fld', 'tablealias' => 'ur', 'field' => 'user_id']
-					]
-				],
-				[
-					'type' => 'op',
-					'operator' => 'IS NOT NULL',
-					'params' => [
-						['type' => 'fld', 'tablealias' => 'gr', 'field' => 'group_id']
 					]
 				]
 			]
@@ -346,24 +218,6 @@ class LoadAccessExtension implements IMemoraQueryExtension, ISortable {
 					[
 						'when' => [
 							'type' => 'op',
-							'operator' => 'AND',
-							'params' => [
-								[
-									'type' => 'op',
-									'operator' => '=',
-									'params' => [
-										['type' => 'fld', 'tablealias' => 'r', 'field' => 'permission'],
-										'edit'
-									]
-								],
-								$roleMembershipCondition
-							]
-						],
-						'then' => 'edit'
-					],
-					[
-						'when' => [
-							'type' => 'op',
 							'operator' => 'OR',
 							'params' => [
 								$userViewCondition,
@@ -372,21 +226,6 @@ class LoadAccessExtension implements IMemoraQueryExtension, ISortable {
 									'operator' => 'IS NOT NULL',
 									'params' => [
 										['type' => 'fld', 'tablealias' => 'ga', 'field' => 'mode']
-									]
-								],
-								[
-									'type' => 'op',
-									'operator' => 'AND',
-									'params' => [
-										[
-											'type' => 'op',
-											'operator' => 'IN',
-											'params' => [
-												['type' => 'fld', 'tablealias' => 'r', 'field' => 'permission'],
-												['view', 'edit']
-											]
-										],
-										$roleMembershipCondition
 									]
 								]
 							]
@@ -422,6 +261,10 @@ class LoadAccessExtension implements IMemoraQueryExtension, ISortable {
 			$groupIds,
 			static fn(int $id): bool => $id > 0
 		)));
+	}
+
+	private function hasEntryAdminPermission(): bool {
+		return $this->usermanager->can(Permission::for('entry', 'admin'));
 	}
 
 	public function getPriority(): int {

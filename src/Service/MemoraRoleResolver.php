@@ -124,8 +124,7 @@ class MemoraRoleResolver extends AbstractMemoraTableService implements IMemoraRo
 		$result = [];
 
 		foreach ($roles as $role) {
-			if ($scope !== null && (string)($role['scope'] ?? '') !== $scope) continue;
-			if (!empty($permissions) && !in_array((string)($role['permission'] ?? ''), $permissions, true)) continue;
+			if (!$this->roleMatchesPermissionFilter($role, $scope, $permissions)) continue;
 			$id = $this->normalizeId($role['id'] ?? null);
 			if ($id !== null) {
 				$result[$id] = $id;
@@ -146,15 +145,16 @@ class MemoraRoleResolver extends AbstractMemoraTableService implements IMemoraRo
 			$where[] = $this->eq('base3system_sysrole', 'archive', 0);
 		}
 
-		return $this->fetchRows(
+		$roles = $this->fetchRows(
 			'base3system_sysrole',
-			['id', 'name', 'scope', 'permission', 'label', 'info', 'archive', 'created', 'changed'],
+			['id', 'name', 'label', 'info', 'archive', 'created', 'changed'],
 			$this->and($where),
 			[
-				['element' => $this->fld('base3system_sysrole', 'scope'), 'direction' => 'ASC'],
 				['element' => $this->fld('base3system_sysrole', 'name'), 'direction' => 'ASC']
 			]
 		);
+
+		return $this->withPermissions($roles, $includeArchived);
 	}
 
 	private function getUserGroupIds(int $userId): array {
@@ -170,5 +170,65 @@ class MemoraRoleResolver extends AbstractMemoraTableService implements IMemoraRo
 	private function filterRoleIds(array $roleIds, bool $includeArchived): array {
 		$roles = $this->getRolesByIds($roleIds, $includeArchived);
 		return $this->normalizeIds(array_column($roles, 'id'));
+	}
+
+	private function withPermissions(array $roles, bool $includeArchived): array {
+		$roleIds = $this->normalizeIds(array_column($roles, 'id'));
+		if (empty($roleIds)) {
+			return $roles;
+		}
+
+		$relations = $this->fetchRows(
+			'base3system_sysrolepermission',
+			['role_id', 'permission_id'],
+			$this->in('base3system_sysrolepermission', 'role_id', $roleIds)
+		);
+
+		$permissionIds = $this->normalizeIds(array_column($relations, 'permission_id'));
+		$permissions = [];
+
+		if (!empty($permissionIds)) {
+			$where = [$this->in('base3system_syspermission', 'id', $permissionIds)];
+			if (!$includeArchived) {
+				$where[] = $this->eq('base3system_syspermission', 'archive', 0);
+			}
+
+			foreach ($this->fetchRows('base3system_syspermission', ['id', 'scope', 'permission', 'label', 'info', 'archive', 'created', 'changed'], $this->and($where)) as $permission) {
+				$id = $this->normalizeId($permission['id'] ?? null);
+				if ($id !== null) {
+					$permissions[$id] = $permission;
+				}
+			}
+		}
+
+		$byRole = [];
+		foreach ($relations as $relation) {
+			$roleId = $this->normalizeId($relation['role_id'] ?? null);
+			$permissionId = $this->normalizeId($relation['permission_id'] ?? null);
+			if ($roleId === null || $permissionId === null || !isset($permissions[$permissionId])) continue;
+			$byRole[$roleId][] = $permissions[$permissionId];
+		}
+
+		foreach ($roles as &$role) {
+			$roleId = $this->normalizeId($role['id'] ?? null);
+			$role['permissions'] = $roleId !== null ? ($byRole[$roleId] ?? []) : [];
+		}
+		unset($role);
+
+		return $roles;
+	}
+
+	private function roleMatchesPermissionFilter(array $role, ?string $scope, array $permissions): bool {
+		if ($scope === null && empty($permissions)) {
+			return true;
+		}
+
+		foreach (($role['permissions'] ?? []) as $permission) {
+			if ($scope !== null && (string)($permission['scope'] ?? '') !== $scope) continue;
+			if (!empty($permissions) && !in_array((string)($permission['permission'] ?? ''), $permissions, true)) continue;
+			return true;
+		}
+
+		return false;
 	}
 }

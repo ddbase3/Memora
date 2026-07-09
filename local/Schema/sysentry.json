@@ -351,16 +351,6 @@
 			"meta": {
 				"default": true
 			}
-		},
-		{
-			"targetTable": "base3system_sysroleaccess",
-			"on": {
-				"base3system_sysentry.id": "base3system_sysroleaccess.entry_id"
-			},
-			"type": "LEFT",
-			"meta": {
-				"default": true
-			}
 		}
 	],
 	"defaultFilters": [],

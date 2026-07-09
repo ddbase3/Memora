@@ -6,7 +6,8 @@ namespace Memora\Api;
  * Resolves Memora role memberships.
  *
  * This is a Memora-internal helper contract. Resource consumers should normally
- * use ResourceFoundation\Api\IEntityAccessService for role administration.
+ * use ResourceFoundation\Api\IEntityAccessService for role and permission
+ * administration.
  */
 interface IMemoraRoleResolver {
 
@@ -25,7 +26,7 @@ interface IMemoraRoleResolver {
 	/** @return array<int,int> Effective role identifiers for a user, including group roles. */
 	public function getEffectiveUserRoleIds(int|string $userId, bool $includeArchived = false): array;
 
-	/** @return array<int,array<string,mixed>> Effective role rows for a user, including group roles. */
+	/** @return array<int,array<string,mixed>> Effective role rows for a user, including group roles and permissions. */
 	public function getEffectiveUserRoles(int|string $userId, bool $includeArchived = false): array;
 
 	/**
@@ -33,15 +34,15 @@ interface IMemoraRoleResolver {
 	 *
 	 * @param array<int,int|string> $userIds User identifiers
 	 * @param array<int,int|string> $groupIds Group identifiers
-	 * @param string|null $scope Optional role scope filter
-	 * @param array<int,string> $permissions Optional permission filter
+	 * @param string|null $scope Optional permission scope filter
+	 * @param array<int,string> $permissions Optional permission-name filter
 	 * @param bool $includeArchived Whether archived roles should be included
 	 * @return array<int,int> Role identifiers
 	 */
 	public function getRoleIdsForUsersAndGroups(array $userIds, array $groupIds, ?string $scope = null, array $permissions = [], bool $includeArchived = false): array;
 
 	/**
-	 * Returns role rows for the given role identifiers.
+	 * Returns role rows for the given role identifiers, including assigned permissions.
 	 *
 	 * @param array<int,int|string> $roleIds Role identifiers
 	 * @param bool $includeArchived Whether archived roles should be included

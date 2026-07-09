@@ -10,6 +10,10 @@ use ResourceFoundation\Dto\TableMetadata;
 
 class MemoraQuerySchemaProvider implements IMemoraQuerySchemaProvider {
 
+	private const RETIRED_TABLES = [
+		'base3system_sysroleaccess'
+	];
+
 	private string $schemaDir;
 
 	public function __construct() {
@@ -26,6 +30,8 @@ class MemoraQuerySchemaProvider implements IMemoraQuerySchemaProvider {
 	}
 
 	public function getTable(string $tableName): ?TableMetadata {
+		if (in_array($tableName, self::RETIRED_TABLES, true)) return null;
+
 		$shortName = $this->shortenTableName($tableName);
 		$file = $this->schemaDir . '/' . $shortName . '.json';
 		if (!is_file($file)) return null;
@@ -38,6 +44,7 @@ class MemoraQuerySchemaProvider implements IMemoraQuerySchemaProvider {
 
 		$data = json_decode($json, true);
 		if (!is_array($data) || empty($data['name']) || !is_string($data['name'])) return null;
+		if (in_array($data['name'], self::RETIRED_TABLES, true)) return null;
 
 		$fields = [];
 		foreach (($data['fields'] ?? []) as $f) {

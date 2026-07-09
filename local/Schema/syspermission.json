@@ -1,0 +1,77 @@
+{
+	"name": "base3system_syspermission",
+	"label": "System Permission",
+	"description": "Atomic permissions grouped by scope and permission name.",
+	"domain": "xrm",
+	"category": "access",
+	"tags": [
+		"permission",
+		"rbac",
+		"access"
+	],
+	"fields": [
+		{
+			"name": "id",
+			"type": "integer",
+			"label": "Permission ID",
+			"required": true
+		},
+		{
+			"name": "scope",
+			"type": "string",
+			"label": "Permission Scope",
+			"required": true
+		},
+		{
+			"name": "permission",
+			"type": "string",
+			"label": "Permission Name",
+			"required": true
+		},
+		{
+			"name": "label",
+			"type": "string",
+			"label": "Permission Label"
+		},
+		{
+			"name": "info",
+			"type": "text",
+			"label": "Permission Information"
+		},
+		{
+			"name": "archive",
+			"type": "boolean",
+			"label": "Permission Archived",
+			"required": true
+		},
+		{
+			"name": "created",
+			"type": "datetime",
+			"label": "Permission Created",
+			"required": false
+		},
+		{
+			"name": "changed",
+			"type": "datetime",
+			"label": "Last Change",
+			"required": false
+		}
+	],
+	"joins": [
+		{
+			"targetTable": "base3system_sysrolepermission",
+			"on": {
+				"base3system_syspermission.id": "base3system_sysrolepermission.permission_id"
+			},
+			"type": "LEFT",
+			"meta": {
+				"default": true
+			}
+		}
+	],
+	"defaultFilters": [],
+	"position": {
+		"x": -205,
+		"y": 900
+	}
+}

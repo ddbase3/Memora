@@ -1,0 +1,54 @@
+{
+	"name": "base3system_sysrolepermission",
+	"label": "Role-Permission Relation",
+	"description": "Mapping table between roles and permissions.",
+	"domain": "xrm",
+	"category": "access",
+	"tags": [
+		"role",
+		"permission",
+		"relation",
+		"rbac"
+	],
+	"fields": [
+		{
+			"name": "role_id",
+			"type": "integer",
+			"label": "Role ID",
+			"required": true
+		},
+		{
+			"name": "permission_id",
+			"type": "integer",
+			"label": "Permission ID",
+			"required": true
+		}
+	],
+	"joins": [
+		{
+			"targetTable": "base3system_sysrole",
+			"on": {
+				"base3system_sysrolepermission.role_id": "base3system_sysrole.id"
+			},
+			"type": "INNER",
+			"meta": {
+				"default": true
+			}
+		},
+		{
+			"targetTable": "base3system_syspermission",
+			"on": {
+				"base3system_sysrolepermission.permission_id": "base3system_syspermission.id"
+			},
+			"type": "INNER",
+			"meta": {
+				"default": true
+			}
+		}
+	],
+	"defaultFilters": [],
+	"position": {
+		"x": -500,
+		"y": 950
+	}
+}
