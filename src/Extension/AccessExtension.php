@@ -88,7 +88,7 @@ class AccessExtension implements IMemoraQueryExtension, ISortable {
 	}
 
 	private function hasEntryAdminPermission(): bool {
-		return $this->usermanager->can(Permission::for('entry', 'admin'));
+		return $this->usermanager->can(Permission::for('entry', 'admin', null));
 	}
 
 	public function getPriority(): int {
