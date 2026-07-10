@@ -1,47 +1,29 @@
 # Access and roles
 
-Memora separates entry-level ACL grants from reusable RBAC roles.
+Memora uses two complementary authorization layers.
 
 ## Entry ACL
 
-Concrete entry access remains directly attached to users and groups:
+Concrete access to individual entries is stored directly for users and groups:
 
-```text
-base3system_sysuseraccess
-base3system_sysgroupaccess
-```
+- `base3system_sysuseraccess`
+- `base3system_sysgroupaccess`
 
-These tables decide which concrete entries a user can view or edit. They remain the source of truth for CRM/XRM entry visibility.
+This layer decides which entries a user can see or edit.
 
-## RBAC roles and permissions
+## RBAC
 
-Reusable roles and permissions are managed separately:
+Reusable roles and permissions are stored separately:
 
-```text
-base3system_sysrole
-base3system_syspermission
-base3system_sysrolepermission
-base3system_sysuserrole
-base3system_sysgrouprole
-```
+- `base3system_sysrole`
+- `base3system_syspermission`
+- `base3system_sysrolepermission`
+- `base3system_sysuserrole`
+- `base3system_sysgrouprole`
 
-A role is a named profile. A permission is an atomic `scope` + `permission` grant. Roles receive permissions through `base3system_sysrolepermission`, and users or groups receive roles through `base3system_sysuserrole` and `base3system_sysgrouprole`.
+This layer describes general capabilities such as `entry/admin`, `user/manage`, or `role/manage`.
 
-## Retired role access
+## Entry admin
 
-`base3system_sysroleaccess` is retired and must not be used for entry ACL. The old `roleaccess`, `addroleaccess`, `removeroleaccess`, and `replaceroleaccess` payload keys are no longer part of the active access API.
+A user with `Permission::for('entry', 'admin')` bypasses normal entry filtering. Other users are filtered by direct user/group entry access.
 
-## Admin bypass
-
-Entry ACL filtering may be bypassed by users with this RBAC permission:
-
-```text
-scope      = entry
-permission = admin
-```
-
-Code should check it through the Usermanager:
-
-```php
-$usermanager->can(Permission::for('entry', 'admin'))
-```

@@ -247,6 +247,11 @@ class MemoraEntityDataService implements IEntityDataService {
 	}
 
 	private function applyProfileOptions(array $options): array {
+		if (!empty($options['ignoreprofile']) || isset($options['entry'])) {
+			unset($options['ignoreprofile']);
+			return $options;
+		}
+
 		$profile = $this->profiles->getActiveProfile();
 		if (!$profile || empty($profile['profile'])) {
 			return $options;

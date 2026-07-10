@@ -1,22 +1,16 @@
 # Installation notes
 
-Memora expects the BASE3 system tables used by entry ACL and RBAC.
+Memora expects the standard XRM system tables for entries, users, groups, direct entry access, roles, permissions, and RBAC assignment tables.
 
-## Entry ACL tables
+Required access tables:
 
-```text
-base3system_sysuseraccess
-base3system_sysgroupaccess
-```
+- `base3system_sysuseraccess`
+- `base3system_sysgroupaccess`
+- `base3system_sysrole`
+- `base3system_syspermission`
+- `base3system_sysrolepermission`
+- `base3system_sysuserrole`
+- `base3system_sysgrouprole`
 
-## RBAC tables
+After updating plugin files, clear any class-map, opcode, or application caches used by the installation, then log out and log in again so user roles and permissions are loaded fresh.
 
-```text
-base3system_sysrole
-base3system_syspermission
-base3system_sysrolepermission
-base3system_sysuserrole
-base3system_sysgrouprole
-```
-
-`base3system_sysroleaccess` is retired and should be removed from the database and schema directory.
