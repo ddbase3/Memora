@@ -5,6 +5,9 @@ namespace Memora\Extension;
 use Base3\Api\ISortable;
 use Base3\Usermanager\Api\IUsermanager;
 use Base3\Usermanager\Permission;
+use Base3\Authorization\Api\IAuthorizationService;
+use Base3\Authorization\Dto\AuthorizationRequest;
+use Memora\Api\IMemoraRoleResolver;
 use Memora\Api\IMemoraQueryExtension;
 
 class AccessExtension implements IMemoraQueryExtension, ISortable {
@@ -15,7 +18,11 @@ class AccessExtension implements IMemoraQueryExtension, ISortable {
 	/** Default group ID for all authenticated members */
 	private const DEFAULT_GROUP_ID = 1;
 
-	public function __construct(private readonly IUsermanager $usermanager) {}
+	public function __construct(
+		private readonly IUsermanager $usermanager,
+		private readonly IMemoraRoleResolver $roles,
+		private readonly IAuthorizationService $authorization
+	) {}
 
 	public function isApplicable(array $options): bool {
 		return !$this->hasEntryAdminPermission();
@@ -35,7 +42,7 @@ class AccessExtension implements IMemoraQueryExtension, ISortable {
 			]];
 		}
 
-		$groupIds = $this->getCurrentGroupIds();
+		$groupIds = $this->roles->getCurrentGroupIds();
 		if (!empty($groupIds)) {
 			$conditions[] = [ 'type' => 'op', 'operator' => 'IN', 'params' => [
 				[ 'type' => 'fld', 'table' => 'base3system_sysgroupaccess', 'field' => 'group_id', 'variant' => 'optional' ],
@@ -73,22 +80,8 @@ class AccessExtension implements IMemoraQueryExtension, ISortable {
 		];
 	}
 
-	private function getCurrentGroupIds(): array {
-		$groups = $this->usermanager->getGroups();
-		$groupIds = array_map(fn($g) => (int)$g->id, $groups ?? []);
-
-		if (!in_array(self::DEFAULT_GROUP_ID, $groupIds, true)) {
-			$groupIds[] = self::DEFAULT_GROUP_ID;
-		}
-
-		return array_values(array_unique(array_filter(
-			$groupIds,
-			static fn(int $id): bool => $id > 0
-		)));
-	}
-
 	private function hasEntryAdminPermission(): bool {
-		return $this->usermanager->can(Permission::for('entry', 'admin', null));
+		return $this->authorization->decide(new AuthorizationRequest('base3', Permission::for('entry', 'admin')))->isAllowed();
 	}
 
 	public function getPriority(): int {

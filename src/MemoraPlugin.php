@@ -16,7 +16,11 @@ use Memora\Api\IMemoraQuerySchemaProvider;
 use Memora\Api\IMemoraQueryService;
 use Memora\Api\IMemoraRoleResolver;
 use Memora\Query\MemoraQuerySchemaProvider;
-use Memora\Service\MemoraAccessService;
+use Memora\Service\MemoraAuthorizationCatalogService;
+use Memora\Service\MemoraEntryAuthorizationAdministrationService;
+use Memora\Service\MemoraResourceAuthorizationService;
+use Base3\Authorization\Api\IAuthorizationCatalogService;
+use Base3\Authorization\Api\IAuthorizationService;
 use Memora\Service\MemoraActivityService;
 use Memora\Service\MemoraEntityDataService;
 use Memora\Service\MemoraEntityFileService;
@@ -28,7 +32,6 @@ use Memora\Service\MemoraRoleResolver;
 use Memora\Service\MemoraStructureService;
 use Memora\Service\MemoraTagService;
 use Memora\Service\MemoraUserDataService;
-use ResourceFoundation\Api\IEntityAccessService;
 use ResourceFoundation\Api\IEntityActivityService;
 use ResourceFoundation\Api\IEntityDataService;
 use ResourceFoundation\Api\IEntityFileService;
@@ -117,13 +120,28 @@ class MemoraPlugin implements IPlugin, ICheck {
 			)
 
 			->set(
-				IEntityAccessService::class,
-				fn($c) => new MemoraAccessService(
+				IAuthorizationCatalogService::class,
+				fn($c) => new MemoraAuthorizationCatalogService(
 					$c->get(IMemoraQueryService::class),
-					$c->get(IEntityDataService::class),
-					$c->get(IMemoraRoleResolver::class)
+					$c->get(IMemoraRoleResolver::class),
+					$c->get(IAuthorizationService::class)
 				),
 				IContainer::SHARED | IContainer::NOOVERWRITE
+			)
+
+			->set(
+				MemoraResourceAuthorizationService::class,
+				fn($c) => new MemoraResourceAuthorizationService($c->get(IEntityDataService::class)),
+				IContainer::SHARED
+			)
+
+			->set(
+				MemoraEntryAuthorizationAdministrationService::class,
+				fn($c) => new MemoraEntryAuthorizationAdministrationService(
+					$c->get(IMemoraQueryService::class),
+					$c->get(IEntityDataService::class)
+				),
+				IContainer::SHARED
 			)
 
 			->set(

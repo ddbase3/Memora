@@ -2,49 +2,30 @@
 
 namespace Memora\Service;
 
+use Base3\Authorization\Api\IAuthorizationCatalogService;
+use Base3\Authorization\Api\IAuthorizationService;
+use Base3\Authorization\Dto\AuthorizationRequest;
+use Base3\Usermanager\Permission;
 use Memora\Api\IMemoraQueryService;
 use Memora\Api\IMemoraRoleResolver;
-use ResourceFoundation\Api\IEntityAccessService;
-use ResourceFoundation\Api\IEntityDataService;
+use RuntimeException;
 
-class MemoraAccessService extends AbstractMemoraTableService implements IEntityAccessService {
+/** Owns Memora's existing system role/permission catalog and direct membership tables. */
+final class MemoraAuthorizationCatalogService extends AbstractMemoraTableService implements IAuthorizationCatalogService {
 
 	public function __construct(
-		IMemoraQueryService $dataqueryservice,
-		private readonly IEntityDataService $entitydataservice,
-		private readonly IMemoraRoleResolver $roleResolver
-	) {
-		parent::__construct($dataqueryservice);
+		IMemoraQueryService $query,
+		private readonly IMemoraRoleResolver $roleResolver,
+		private readonly IAuthorizationService $authorization
+	) { parent::__construct($query); }
+
+	private function assertAdministrator(): void {
+		if (!$this->authorization->decide(new AuthorizationRequest('base3', Permission::for('system', 'admin')))->isAllowed()) {
+			throw new RuntimeException('XRM role catalog administration denied.');
+		}
 	}
-
-	public function getEntryAccess(int|string $entryId): array {
-		$entryId = $this->requireId($entryId, 'entry');
-
-		return [
-			'useraccess' => $this->fetchRows(
-				'base3system_sysuseraccess',
-				['id', 'entry_id', 'user_id', 'mode'],
-				$this->eq('base3system_sysuseraccess', 'entry_id', $entryId),
-				[['element' => $this->fld('base3system_sysuseraccess', 'user_id'), 'direction' => 'ASC']]
-			),
-			'groupaccess' => $this->fetchRows(
-				'base3system_sysgroupaccess',
-				['id', 'entry_id', 'group_id', 'mode'],
-				$this->eq('base3system_sysgroupaccess', 'entry_id', $entryId),
-				[['element' => $this->fld('base3system_sysgroupaccess', 'group_id'), 'direction' => 'ASC']]
-			)
-		];
-	}
-
-	public function replaceEntryUserAccess(int|string $entryId, array $access): void {
-		$this->entitydataservice->updateEntry($entryId, ['replaceuseraccess' => $access]);
-	}
-
-	public function replaceEntryGroupAccess(int|string $entryId, array $access): void {
-		$this->entitydataservice->updateEntry($entryId, ['replacegroupaccess' => $access]);
-	}
-
 	public function getRoles(bool $includeArchived = false): array {
+		$this->assertAdministrator();
 		$where = $includeArchived ? null : $this->eq('base3system_sysrole', 'archive', 0);
 
 		$roles = $this->fetchRows(
@@ -60,6 +41,7 @@ class MemoraAccessService extends AbstractMemoraTableService implements IEntityA
 	}
 
 	public function getRole(int|string $roleId): ?array {
+		$this->assertAdministrator();
 		$roleId = $this->requireId($roleId, 'role');
 		$role = $this->fetchRow('base3system_sysrole', $this->roleFields(), $this->eq('base3system_sysrole', 'id', $roleId));
 		if (!$role) {
@@ -71,7 +53,11 @@ class MemoraAccessService extends AbstractMemoraTableService implements IEntityA
 	}
 
 	public function createRole(array $role): int|string {
+		$this->assertAdministrator();
 		$name = $this->requireString((string)($role['name'] ?? ''), 'role name');
+
+		$permissionIds = $this->resolvePermissionIdsFromPayload($role);
+		$this->validateExistingIds($permissionIds, 'base3system_syspermission', 'permission');
 
 		$insertId = $this->insertRow('base3system_sysrole', [
 			'name' => $name,
@@ -87,16 +73,17 @@ class MemoraAccessService extends AbstractMemoraTableService implements IEntityA
 
 		$roleId = $this->normalizeId($insertId);
 		if ($roleId !== null) {
-			$permissionIds = $this->resolvePermissionIdsFromPayload($role);
 			if (!empty($permissionIds)) {
 				$this->replaceRolePermissions($roleId, $permissionIds);
 			}
 		}
 
+		if (!is_numeric($insertId) || (int)$insertId < 1) throw new \RuntimeException('Native role creation failed.');
 		return $insertId;
 	}
 
 	public function updateRole(int|string $roleId, array $patch): void {
+		$this->assertAdministrator();
 		$roleId = $this->requireId($roleId, 'role');
 		$set = [];
 
@@ -109,18 +96,19 @@ class MemoraAccessService extends AbstractMemoraTableService implements IEntityA
 			$set['archive'] = !empty($patch['archive']) ? 1 : 0;
 		}
 
+		$permissionIds = $this->containsPermissionPayload($patch) ? $this->resolvePermissionIdsFromPayload($patch) : null;
+		if ($permissionIds !== null) $this->validateExistingIds($permissionIds, 'base3system_syspermission', 'permission');
 		$this->updateRows('base3system_sysrole', $set, $this->eq('base3system_sysrole', 'id', $roleId), 1);
-
-		if ($this->containsPermissionPayload($patch)) {
-			$this->replaceRolePermissions($roleId, $this->resolvePermissionIdsFromPayload($patch));
-		}
+		if ($permissionIds !== null) $this->replaceRolePermissions($roleId, $permissionIds);
 	}
 
 	public function archiveRole(int|string $roleId): void {
+		$this->assertAdministrator();
 		$this->updateRole($roleId, ['archive' => 1]);
 	}
 
 	public function getPermissions(bool $includeArchived = false): array {
+		$this->assertAdministrator();
 		$where = $includeArchived ? null : $this->eq('base3system_syspermission', 'archive', 0);
 
 		return $this->fetchRows(
@@ -135,11 +123,13 @@ class MemoraAccessService extends AbstractMemoraTableService implements IEntityA
 	}
 
 	public function getPermission(int|string $permissionId): ?array {
+		$this->assertAdministrator();
 		$permissionId = $this->requireId($permissionId, 'permission');
 		return $this->fetchRow('base3system_syspermission', $this->permissionFields(), $this->eq('base3system_syspermission', 'id', $permissionId));
 	}
 
 	public function createPermission(array $permission): int|string {
+		$this->assertAdministrator();
 		$scope = $this->requireString((string)($permission['scope'] ?? ''), 'permission scope');
 		$name = $this->requireString((string)($permission['permission'] ?? ''), 'permission name');
 
@@ -168,6 +158,7 @@ class MemoraAccessService extends AbstractMemoraTableService implements IEntityA
 	}
 
 	public function updatePermission(int|string $permissionId, array $patch): void {
+		$this->assertAdministrator();
 		$permissionId = $this->requireId($permissionId, 'permission');
 		$set = [];
 
@@ -184,10 +175,12 @@ class MemoraAccessService extends AbstractMemoraTableService implements IEntityA
 	}
 
 	public function archivePermission(int|string $permissionId): void {
+		$this->assertAdministrator();
 		$this->updatePermission($permissionId, ['archive' => 1]);
 	}
 
 	public function getRolePermissions(int|string $roleId): array {
+		$this->assertAdministrator();
 		$roleId = $this->requireId($roleId, 'role');
 		$relations = $this->fetchRows(
 			'base3system_sysrolepermission',
@@ -212,8 +205,11 @@ class MemoraAccessService extends AbstractMemoraTableService implements IEntityA
 	}
 
 	public function replaceRolePermissions(int|string $roleId, array $permissionIds): void {
+		$this->assertAdministrator();
 		$roleId = $this->requireId($roleId, 'role');
-		$permissionIds = $this->normalizeIds($permissionIds);
+		$this->validateExistingIds([$roleId], 'base3system_sysrole', 'role');
+		$permissionIds = $this->requireIds($permissionIds, 'permission');
+		$this->validateExistingIds($permissionIds, 'base3system_syspermission', 'permission');
 		$queries = [[
 			'type' => 'delete',
 			'table' => 'base3system_sysrolepermission',
@@ -237,20 +233,26 @@ class MemoraAccessService extends AbstractMemoraTableService implements IEntityA
 	}
 
 	public function getUserRoles(int|string $userId): array {
+		$this->assertAdministrator();
 		return $this->roleResolver->getRolesByIds($this->roleResolver->getUserRoleIds($userId));
 	}
 
 	public function getGroupRoles(int|string $groupId): array {
+		$this->assertAdministrator();
 		return $this->roleResolver->getRolesByIds($this->roleResolver->getGroupRoleIds($groupId));
 	}
 
 	public function getEffectiveUserRoles(int|string $userId): array {
+		$this->assertAdministrator();
 		return $this->roleResolver->getEffectiveUserRoles($userId);
 	}
 
 	public function replaceUserRoles(int|string $userId, array $roleIds): void {
+		$this->assertAdministrator();
 		$userId = $this->requireId($userId, 'user');
-		$roleIds = $this->normalizeIds($roleIds);
+		$this->validateExistingIds([$userId], 'base3system_sysuser', 'user');
+		$roleIds = $this->requireIds($roleIds, 'role');
+		$this->validateExistingIds($roleIds, 'base3system_sysrole', 'role');
 		$queries = [[
 			'type' => 'delete',
 			'table' => 'base3system_sysuserrole',
@@ -274,8 +276,11 @@ class MemoraAccessService extends AbstractMemoraTableService implements IEntityA
 	}
 
 	public function replaceGroupRoles(int|string $groupId, array $roleIds): void {
+		$this->assertAdministrator();
 		$groupId = $this->requireId($groupId, 'group');
-		$roleIds = $this->normalizeIds($roleIds);
+		$this->validateExistingIds([$groupId], 'base3system_sysgroup', 'group');
+		$roleIds = $this->requireIds($roleIds, 'role');
+		$this->validateExistingIds($roleIds, 'base3system_sysrole', 'role');
 		$queries = [[
 			'type' => 'delete',
 			'table' => 'base3system_sysgrouprole',
@@ -299,6 +304,7 @@ class MemoraAccessService extends AbstractMemoraTableService implements IEntityA
 	}
 
 	public function getUserGroups(int|string $userId): array {
+		$this->assertAdministrator();
 		$userId = $this->requireId($userId, 'user');
 		$rows = $this->fetchRows(
 			'base3system_sysusergroup',
@@ -311,8 +317,11 @@ class MemoraAccessService extends AbstractMemoraTableService implements IEntityA
 	}
 
 	public function replaceUserGroups(int|string $userId, array $groupIds): void {
+		$this->assertAdministrator();
 		$userId = $this->requireId($userId, 'user');
-		$groupIds = $this->normalizeIds($groupIds);
+		$this->validateExistingIds([$userId], 'base3system_sysuser', 'user');
+		$groupIds = $this->requireIds($groupIds, 'group');
+		$this->validateExistingIds($groupIds, 'base3system_sysgroup', 'group');
 		$queries = [[
 			'type' => 'delete',
 			'table' => 'base3system_sysusergroup',
@@ -395,25 +404,26 @@ class MemoraAccessService extends AbstractMemoraTableService implements IEntityA
 	}
 
 	private function resolvePermissionIdsFromPayload(array $data): array {
-		if (array_key_exists('permission_ids', $data) && is_array($data['permission_ids'])) {
-			return $this->normalizeIds($data['permission_ids']);
+		if (array_key_exists('permission_ids', $data)) {
+			if (!is_array($data['permission_ids'])) throw new \InvalidArgumentException('Invalid permission ID list.');
+			return $this->requireIds($data['permission_ids'], 'permission');
 		}
 
-		if (array_key_exists('permissions', $data) && is_array($data['permissions'])) {
+		if (array_key_exists('permissions', $data)) {
+			if (!is_array($data['permissions']) || !array_is_list($data['permissions'])) throw new \InvalidArgumentException('Invalid permission reference list.');
 			$ids = [];
 			foreach ($data['permissions'] as $permission) {
 				if (is_int($permission) || (is_string($permission) && ctype_digit($permission))) {
 					$ids[] = $permission;
 					continue;
 				}
-				if (!is_array($permission)) continue;
+				if (!is_array($permission)) throw new \InvalidArgumentException('Invalid permission reference.');
 				$id = $this->resolvePermissionId($permission);
-				if ($id !== null) {
-					$ids[] = $id;
-				}
+				if ($id === null) throw new \InvalidArgumentException('Incomplete permission reference.');
+				$ids[] = $id;
 			}
 
-			return $this->normalizeIds($ids);
+			return $this->requireIds($ids, 'permission');
 		}
 
 		if (array_key_exists('scope', $data) && array_key_exists('permission', $data)) {
@@ -435,6 +445,27 @@ class MemoraAccessService extends AbstractMemoraTableService implements IEntityA
 		}
 
 		return $this->normalizeId($this->createPermission($permission));
+	}
+
+	/** Invalid input must not silently drop references before a replacement delete. */
+	private function requireIds(array $ids, string $name): array {
+		$valid = [];
+		foreach ($ids as $id) {
+			$parsed = $this->normalizeId($id);
+			if ($parsed === null) throw new \InvalidArgumentException('Invalid native ' . $name . ' id.');
+			$valid[$parsed] = $parsed;
+		}
+		return array_values($valid);
+	}
+
+	/** Validates a complete native ID list before a destructive replacement. */
+	private function validateExistingIds(array $ids, string $table, string $name): void {
+		if ($ids === []) return;
+		$rows = $this->fetchRows($table, ['id'], $this->in($table, 'id', $ids));
+		$found = $this->normalizeIds(array_column($rows, 'id'));
+		if (count(array_diff($ids, $found)) !== 0) {
+			throw new \InvalidArgumentException('Unknown native ' . $name . ' reference.');
+		}
 	}
 
 	private function requireId(int|string $id, string $name): int {

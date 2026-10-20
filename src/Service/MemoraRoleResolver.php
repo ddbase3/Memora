@@ -79,20 +79,24 @@ class MemoraRoleResolver extends AbstractMemoraTableService implements IMemoraRo
 	}
 
 	public function getEffectiveUserRoleIds(int|string $userId, bool $includeArchived = false): array {
-		$userId = $this->normalizeId($userId);
-		if ($userId === null) {
-			return [];
+		// Historic archived assignments are administrative metadata, not effective grants.
+		// They remain queryable from Memora's native tables without influencing access decisions.
+		if ($includeArchived) {
+			$id = $this->normalizeId($userId);
+			return $id === null ? [] : $this->getRoleIdsForUsersAndGroups([$id], $this->getUserGroupIds($id), null, [], true);
 		}
-
-		$groupIds = $this->getUserGroupIds($userId);
-		return $this->getRoleIdsForUsersAndGroups([$userId], $groupIds, null, [], $includeArchived);
+		$user = $this->usermanager->getUserById($userId);
+		if ($user === null) return [];
+		$ids = [];
+		foreach ($user->roles ?? [] as $role) {
+			$id = $this->normalizeId($role->id ?? null);
+			if ($id !== null && ($includeArchived || empty($role->archive))) $ids[] = $id;
+		}
+		return $this->normalizeIds($ids);
 	}
 
 	public function getEffectiveUserRoles(int|string $userId, bool $includeArchived = false): array {
-		return $this->getRolesByIds(
-			$this->getEffectiveUserRoleIds($userId, $includeArchived),
-			$includeArchived
-		);
+		return $this->getRolesByIds($this->getEffectiveUserRoleIds($userId, $includeArchived), $includeArchived);
 	}
 
 	public function getRoleIdsForUsersAndGroups(array $userIds, array $groupIds, ?string $scope = null, array $permissions = [], bool $includeArchived = false): array {

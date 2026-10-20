@@ -6,8 +6,9 @@ namespace Memora\Api;
  * Resolves Memora role memberships.
  *
  * This is a Memora-internal helper contract. Resource consumers should normally
- * use ResourceFoundation\Api\IEntityAccessService for role and permission
- * administration.
+ * use IUsermanager for effective user roles and IAuthorizationCatalogService
+ * for native role and permission administration. The resolver provides indexed
+ * Memora query filters for arbitrary user/group sets, not permission decisions.
  */
 interface IMemoraRoleResolver {
 

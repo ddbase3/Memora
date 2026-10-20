@@ -1,3 +1,13 @@
+# Authorization API update (2026-10-19)
+
+The active authorization implementation uses the new Framework
+`IAuthorizationService`, `IAuthorizationAdministrationService` and
+`IAuthorizationCatalogService` contracts. The retired
+`Base3\Authorization\Api\IAuthorizationCatalogService` is not an active API.
+See [XRM server authorization](../../docs/authorization-xrm-manager.md).
+The old examples further below are retained only where they describe native
+query, entry and relation behavior.
+
 # Memora
 
 **Memora** is a modular XRM/CRM backend and knowledge graph for the BASE3 framework. It provides a unified entity layer for structured data, relations, metadata, tags, access control, and module-based entry semantics. Built on top of **ResourceFoundation** and backed by **DataHawk** query compilation, Memora offers a flexible and extensible CRUD API for domain entities of many different types.
@@ -983,7 +993,7 @@ The admin bypass is checked through the active Usermanager permission model:
 ```php
 use Base3\Usermanager\Permission;
 
-$usermanager->can(Permission::for('entry', 'admin'));
+$authorization->decide(new AuthorizationRequest('base3', Permission::for('entry', 'admin')))->isAllowed();
 ```
 
 If this returns `true`, query filtering and `loadaccess` may treat the current user as having `edit` access to entries.
@@ -1486,13 +1496,15 @@ This means Memora can serve as the normal default implementation while a project
 
 ### Service overview
 
-Memora currently provides these ResourceFoundation-backed services:
+Memora currently provides these native and ResourceFoundation-backed services:
 
 ```text
 ResourceFoundation\Api\IEntityDataService      -> Memora\Service\MemoraEntityDataService
 ResourceFoundation\Api\IEntityFileService      -> Memora\Service\MemoraEntityFileService
 ResourceFoundation\Api\IEntityProfileService   -> Memora\Service\MemoraProfileService
-ResourceFoundation\Api\IEntityAccessService    -> Memora\Service\MemoraAccessService
+Base3\Authorization\Api\IAuthorizationCatalogService -> Memora\Service\MemoraAuthorizationCatalogService
+Base3\Authorization\Api\IAuthorizationService        -> Memora\Service\MemoraResourceAuthorizationService (xrm entry authority)
+Base3\Authorization\Api\IAuthorizationAdministrationService -> Memora\Service\MemoraEntryAuthorizationAdministrationService
 ResourceFoundation\Api\IEntityRelationService  -> Memora\Service\MemoraRelationService
 ResourceFoundation\Api\IEntityMetadataService  -> Memora\Service\MemoraMetadataService
 ResourceFoundation\Api\IEntityTagService       -> Memora\Service\MemoraTagService
@@ -1570,7 +1582,7 @@ Examples:
 MemoraRelationService  -> addallocs, removeallocs, replaceallocs
 MemoraMetadataService  -> setmetadata, unsetmetadata
 MemoraTagService       -> addtags, removetags, replacetags
-MemoraAccessService    -> replaceuseraccess, replacegroupaccess
+MemoraEntityDataService -> replaceuseraccess, replacegroupaccess (native update extensions)
 ```
 
 This preserves the existing extension pipeline and keeps behavior consistent with direct calls to `MemoraEntityDataService`.
@@ -1583,7 +1595,7 @@ Those services may write directly through structured queries:
 
 ```text
 MemoraProfileService    -> base3system_sysprofile
-MemoraAccessService     -> roles, permissions, role permissions, user roles, group roles, user groups
+MemoraAuthorizationCatalogService -> roles, permissions, role permissions, user roles, group roles, user groups
 MemoraStructureService  -> types, modules, scopes
 MemoraActivityService   -> logs and comments
 MemoraUserDataService   -> per-user entry data
@@ -1846,7 +1858,7 @@ Conceptual check:
 ```php
 use Base3\Usermanager\Permission;
 
-if ($usermanager->can(Permission::for('entry', 'admin'))) {
+if ($authorization->decide(new AuthorizationRequest('base3', Permission::for('entry', 'admin')))->isAllowed()) {
         // Current user may bypass normal entry ACL filtering.
 }
 ```
@@ -1861,11 +1873,11 @@ base3system_sysuseraccess.mode = owner
 
 ### Creating and Updating Roles
 
-The ResourceFoundation-facing access service is:
+The BASE3 authorization catalog service is:
 
 ```text
-ResourceFoundation\Api\IEntityAccessService
-Memora\Service\MemoraAccessService
+Base3\Authorization\Api\IAuthorizationCatalogService
+Memora\Service\MemoraAuthorizationCatalogService
 ```
 
 It manages roles and permissions without exposing Memora's internal table handling to consumers.
@@ -1873,7 +1885,7 @@ It manages roles and permissions without exposing Memora's internal table handli
 Create a role:
 
 ```php
-use ResourceFoundation\Api\IEntityAccessService;
+use Base3\Authorization\Api\IAuthorizationCatalogService;
 
 $roleId = $accessService->createRole([
         'name' => 'content_editor',
