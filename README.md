@@ -2088,3 +2088,14 @@ Memora remains the concrete implementation plugin, while ResourceFoundation defi
 ## License
 
 Memora is part of the BASE3 ecosystem and distributed under the terms of the **GNU General Public License v3.0 (GPL-3.0)**.
+
+
+## Native group resolver in host composition
+
+Memora registers `IMemoraRoleResolver` using `IContainer::NOOVERWRITE` so a
+project plugin may supply a host-specific trusted identity adapter. The default
+`MemoraRoleResolver` remains unchanged and remains the default for every host
+that does not register its own resolver. In XRM, the host adapter presents
+only configured existing native group memberships for a verified service
+credential; Memora keeps enforcing its native entry ACL. This is not a new
+ACL engine and does not modify the user/group schema.

@@ -15,3 +15,15 @@ cannot be established from the uploaded selective sources and must be verified
 against the live project. This module document is not a privacy notice or a
 claim of regulatory compliance. See the host root `PRIVACY.md` and
 `docs/authorization-xrm-manager.md` for operator responsibilities.
+
+
+## Host-provided service group identities (2026-10-25)
+
+`IMemoraRoleResolver` may now be overridden in project composition through its
+existing DI slot. The XRM host supplies only operator-configured existing
+group IDs for HMAC-verified technical principals. Memora remains the authoritative
+entry ACL evaluator and does not store a copy of service membership or new
+personal data. Service membership mappings are stored outside this plugin in
+host configuration; KeyHarbor processes credential metadata separately. The
+operator retains responsibility for deletion and revocation of memberships,
+backups and historic ACL changes. No additional network recipient is created.

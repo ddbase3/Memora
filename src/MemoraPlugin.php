@@ -88,7 +88,7 @@ class MemoraPlugin implements IPlugin, ICheck {
 					$c->get(IMemoraQueryService::class),
 					$c->get(IUsermanager::class)
 				),
-				IContainer::SHARED
+				IContainer::SHARED | IContainer::NOOVERWRITE
 			)
 
 			->set(
