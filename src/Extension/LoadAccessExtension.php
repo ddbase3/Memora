@@ -9,6 +9,7 @@ use Base3\Authorization\Api\IAuthorizationService;
 use Base3\Authorization\Dto\AuthorizationRequest;
 use Memora\Api\IMemoraRoleResolver;
 use Memora\Api\IMemoraQueryExtension;
+use Memora\Dto\VerifiedResourceQuery;
 
 class LoadAccessExtension implements IMemoraQueryExtension, ISortable {
 
@@ -25,7 +26,7 @@ class LoadAccessExtension implements IMemoraQueryExtension, ISortable {
 	) {}
 
 	public function isApplicable(array $options): bool {
-		return !empty($options['loadaccess']);
+		return !empty($options['loadaccess']) && !($options['__memora_verified_resource_query'] ?? null) instanceof VerifiedResourceQuery;
 	}
 
 	public function applyToQuery(array $query, array $options): array {

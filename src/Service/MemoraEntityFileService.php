@@ -103,9 +103,9 @@ class MemoraEntityFileService implements IEntityFileService {
 	}
 
 	public function getFileContent(int|string $id, array $options = []): ?string {
-		$entry = $this->getFile($id, [
-			'loadaccess' => !empty($options['loadaccess'])
-		]);
+		$readOptions = $options;
+		$readOptions['loadaccess'] = !empty($options['loadaccess']);
+		$entry = $this->getFile($id, $readOptions);
 
 		if ($entry === null) {
 			return null;

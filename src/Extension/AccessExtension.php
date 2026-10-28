@@ -9,6 +9,7 @@ use Base3\Authorization\Api\IAuthorizationService;
 use Base3\Authorization\Dto\AuthorizationRequest;
 use Memora\Api\IMemoraRoleResolver;
 use Memora\Api\IMemoraQueryExtension;
+use Memora\Dto\VerifiedResourceQuery;
 
 class AccessExtension implements IMemoraQueryExtension, ISortable {
 
@@ -25,7 +26,7 @@ class AccessExtension implements IMemoraQueryExtension, ISortable {
 	) {}
 
 	public function isApplicable(array $options): bool {
-		return !$this->hasEntryAdminPermission();
+		return !$this->isVerifiedTechnicalQuery($options) && !$this->hasEntryAdminPermission();
 	}
 
 	public function applyToQuery(array $query, array $options): array {
@@ -62,6 +63,12 @@ class AccessExtension implements IMemoraQueryExtension, ISortable {
 	public function processResult(array $rows, array $options): array {
 		return $rows;
 	}
+
+	private function isVerifiedTechnicalQuery(array $options): bool {
+        $marker = $options['__memora_verified_resource_query'] ?? null;
+        return $marker instanceof VerifiedResourceQuery &&
+            is_array($options['filter'] ?? null) && $marker->matches($options['filter']);
+    }
 
 	private function buildPublicUserAccessCondition(): array {
 		return [
