@@ -1,47 +1,62 @@
 <?php declare(strict_types=1);
 
-namespace Memora;
+/***********************************************************************
+ * This file is part of Memora for BASE3 Framework.
+ *
+ * Memora is a modular XRM/CRM backend and knowledge graph for BASE3.
+ * It provides structured entities, relations, metadata and tags.
+ * ResourceFoundation contracts govern its shared entity services.
+ *
+ * Developed by Daniel Dahme
+ * Licensed under GPL-3.0
+ * https://www.gnu.org/licenses/gpl-3.0.en.html
+ *
+ * https://base3.de
+ * https://github.com/ddbase3/Memora
+ **********************************************************************/
 
-use Base3\Api\ICheck;
-use Base3\Api\IClassMap;
-use Base3\Api\IContainer;
-use Base3\Api\IPlugin;
-use Base3\Configuration\Api\IConfiguration;
-use Base3\Usermanager\Api\IUsermanager;
-use DataHawk\Compiler\MysqlReportQueryCompiler;
-use DataHawk\Service\DefaultReportQueryService;
-use FileBridge\Local\LocalFileStorage;
-use Memora\Api\IMemoraQueryCompiler;
-use Memora\Api\IMemoraQuerySchemaProvider;
-use Memora\Api\IMemoraQueryService;
-use Memora\Api\IMemoraRoleResolver;
-use Memora\Query\MemoraQuerySchemaProvider;
-use Memora\Service\MemoraAuthorizationCatalogService;
-use Memora\Service\MemoraEntryAuthorizationAdministrationService;
-use Memora\Service\MemoraResourceAuthorizationService;
-use Base3\Authorization\Api\IAuthorizationCatalogService;
-use Base3\Authorization\Api\IAuthorizationService;
-use Memora\Service\MemoraActivityService;
-use Memora\Service\MemoraEntityDataService;
-use Memora\Service\MemoraEntityFileService;
-use Memora\Service\MemoraMetadataService;
-use Memora\Service\MemoraProfileService;
-use Memora\Service\MemoraQueryServiceAdapter;
-use Memora\Service\MemoraRelationService;
-use Memora\Service\MemoraRoleResolver;
-use Memora\Service\MemoraStructureService;
-use Memora\Service\MemoraTagService;
-use Memora\Service\MemoraUserDataService;
-use ResourceFoundation\Api\IEntityActivityService;
-use ResourceFoundation\Api\IEntityDataService;
-use ResourceFoundation\Api\IEntityFileService;
-use ResourceFoundation\Api\IEntityMetadataService;
-use ResourceFoundation\Api\IEntityProfileService;
-use ResourceFoundation\Api\IEntityRelationService;
-use ResourceFoundation\Api\IEntityStructureService;
-use ResourceFoundation\Api\IEntityTagService;
-use ResourceFoundation\Api\IEntityUserDataService;
-use ResourceFoundation\Api\IFileStorage;
+namespace Base3\Memora;
+
+use Base3\CoreFoundation\Api\ICheck;
+use Base3\CoreFoundation\Api\IClassMap;
+use Base3\CoreFoundation\Api\IContainer;
+use Base3\CoreFoundation\Api\IPlugin;
+use Base3\CoreFoundation\Configuration\Api\IConfiguration;
+use Base3\CoreFoundation\Usermanager\Api\IUsermanager;
+use Base3\DataHawk\Compiler\MysqlReportQueryCompiler;
+use Base3\DataHawk\Service\DefaultReportQueryService;
+use Base3\FileBridge\Local\LocalFileStorage;
+use Base3\Memora\Api\IMemoraQueryCompiler;
+use Base3\Memora\Api\IMemoraQuerySchemaProvider;
+use Base3\Memora\Api\IMemoraQueryService;
+use Base3\Memora\Api\IMemoraRoleResolver;
+use Base3\Memora\Query\MemoraQuerySchemaProvider;
+use Base3\Memora\Service\MemoraAuthorizationCatalogService;
+use Base3\Memora\Service\MemoraEntryAuthorizationAdministrationService;
+use Base3\Memora\Service\MemoraResourceAuthorizationService;
+use Base3\CoreFoundation\Authorization\Api\IAuthorizationCatalogService;
+use Base3\CoreFoundation\Authorization\Api\IAuthorizationService;
+use Base3\Memora\Service\MemoraActivityService;
+use Base3\Memora\Service\MemoraEntityDataService;
+use Base3\Memora\Service\MemoraEntityFileService;
+use Base3\Memora\Service\MemoraMetadataService;
+use Base3\Memora\Service\MemoraProfileService;
+use Base3\Memora\Service\MemoraQueryServiceAdapter;
+use Base3\Memora\Service\MemoraRelationService;
+use Base3\Memora\Service\MemoraRoleResolver;
+use Base3\Memora\Service\MemoraStructureService;
+use Base3\Memora\Service\MemoraTagService;
+use Base3\Memora\Service\MemoraUserDataService;
+use Base3\ResourceFoundation\Api\IEntityActivityService;
+use Base3\ResourceFoundation\Api\IEntityDataService;
+use Base3\ResourceFoundation\Api\IEntityFileService;
+use Base3\ResourceFoundation\Api\IEntityMetadataService;
+use Base3\ResourceFoundation\Api\IEntityProfileService;
+use Base3\ResourceFoundation\Api\IEntityRelationService;
+use Base3\ResourceFoundation\Api\IEntityStructureService;
+use Base3\ResourceFoundation\Api\IEntityTagService;
+use Base3\ResourceFoundation\Api\IEntityUserDataService;
+use Base3\ResourceFoundation\Api\IFileStorage;
 
 class MemoraPlugin implements IPlugin, ICheck {
 

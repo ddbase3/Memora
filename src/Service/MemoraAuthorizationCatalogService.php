@@ -1,13 +1,28 @@
 <?php declare(strict_types=1);
 
-namespace Memora\Service;
+/***********************************************************************
+ * This file is part of Memora for BASE3 Framework.
+ *
+ * Memora is a modular XRM/CRM backend and knowledge graph for BASE3.
+ * It provides structured entities, relations, metadata and tags.
+ * ResourceFoundation contracts govern its shared entity services.
+ *
+ * Developed by Daniel Dahme
+ * Licensed under GPL-3.0
+ * https://www.gnu.org/licenses/gpl-3.0.en.html
+ *
+ * https://base3.de
+ * https://github.com/ddbase3/Memora
+ **********************************************************************/
 
-use Base3\Authorization\Api\IAuthorizationCatalogService;
-use Base3\Authorization\Api\IAuthorizationService;
-use Base3\Authorization\Dto\AuthorizationRequest;
-use Base3\Usermanager\Permission;
-use Memora\Api\IMemoraQueryService;
-use Memora\Api\IMemoraRoleResolver;
+namespace Base3\Memora\Service;
+
+use Base3\CoreFoundation\Authorization\Api\IAuthorizationCatalogService;
+use Base3\CoreFoundation\Authorization\Api\IAuthorizationService;
+use Base3\CoreFoundation\Authorization\Dto\AuthorizationRequest;
+use Base3\CoreFoundation\Usermanager\Permission;
+use Base3\Memora\Api\IMemoraQueryService;
+use Base3\Memora\Api\IMemoraRoleResolver;
 use RuntimeException;
 
 /** Owns Memora's existing system role/permission catalog and direct membership tables. */

@@ -1,0 +1,15 @@
+{
+	"manifestVersion": 1,
+	"name": "Memora",
+	"namespace": "Base3\\Memora",
+	"version": "4.0.0",
+	"description": "Modular XRM/CRM backend and knowledge graph for BASE3 entities, metadata, relations and access control.",
+	"license": "GPL-3.0",
+	"repository": "https://github.com/ddbase3/Memora",
+	"dependencies": {
+		"CoreFoundation": ">=4.10.0",
+		"ResourceFoundation": ">=4.5.0",
+		"DataHawk": ">=4.7.0",
+		"FileBridge": ">=1.0.0"
+	}
+}

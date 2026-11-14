@@ -1,14 +1,29 @@
 <?php declare(strict_types=1);
 
-namespace Memora\Test\Service;
+/***********************************************************************
+ * This file is part of Memora for BASE3 Framework.
+ *
+ * Memora is a modular XRM/CRM backend and knowledge graph for BASE3.
+ * It provides structured entities, relations, metadata and tags.
+ * ResourceFoundation contracts govern its shared entity services.
+ *
+ * Developed by Daniel Dahme
+ * Licensed under GPL-3.0
+ * https://www.gnu.org/licenses/gpl-3.0.en.html
+ *
+ * https://base3.de
+ * https://github.com/ddbase3/Memora
+ **********************************************************************/
 
-use Base3\Authorization\Dto\AuthorizationDecision;
-use Base3\Authorization\Dto\AuthorizationRequest;
-use Base3\Authorization\Dto\ResourceReference;
-use Base3\Usermanager\Permission;
-use Memora\Service\MemoraResourceAuthorizationService;
+namespace Base3\Memora\Test\Service;
+
+use Base3\CoreFoundation\Authorization\Dto\AuthorizationDecision;
+use Base3\CoreFoundation\Authorization\Dto\AuthorizationRequest;
+use Base3\CoreFoundation\Authorization\Dto\ResourceReference;
+use Base3\CoreFoundation\Usermanager\Permission;
+use Base3\Memora\Service\MemoraResourceAuthorizationService;
 use PHPUnit\Framework\TestCase;
-use ResourceFoundation\Api\IEntityDataService;
+use Base3\ResourceFoundation\Api\IEntityDataService;
 
 final class MemoraResourceAuthorizationServiceTest extends TestCase {
 
@@ -46,7 +61,7 @@ final class MemoraResourceAuthorizationServiceTest extends TestCase {
 		$entries->expects(self::never())->method('getEntry');
 		$service = new MemoraResourceAuthorizationService($entries);
 		$request = new AuthorizationRequest('xrm', Permission::for('entry', 'edit'),
-			new ResourceReference('xrm', 'entry', 10), new \Base3\Authorization\Dto\SubjectReference('xrm', 'user', 27));
+			new ResourceReference('xrm', 'entry', 10), new \Base3\CoreFoundation\Authorization\Dto\SubjectReference('xrm', 'user', 27));
 		self::assertSame(AuthorizationDecision::DENY, $service->decide($request)->outcome);
 	}
 

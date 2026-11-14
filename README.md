@@ -2,8 +2,9 @@
 
 The active authorization implementation uses the new Framework
 `IAuthorizationService`, `IAuthorizationAdministrationService` and
-`IAuthorizationCatalogService` contracts. The retired
-`Base3\Authorization\Api\IAuthorizationCatalogService` is not an active API.
+`IAuthorizationCatalogService` contracts. The retired pre-CoreFoundation
+authorization catalog name is not an active API. Its current contract is
+`Base3\CoreFoundation\Authorization\Api\IAuthorizationCatalogService`.
 See [XRM server authorization](../../docs/authorization-xrm-manager.md).
 The old examples further below are retained only where they describe native
 query, entry and relation behavior.
@@ -61,7 +62,7 @@ An entity in Memora consists of:
 The goal is to make all of this accessible through a single service:
 
 ```php
-ResourceFoundation\Api\IEntityDataService
+Base3\ResourceFoundation\Api\IEntityDataService
 ```
 
 This service supports:
@@ -208,7 +209,7 @@ This has several advantages:
 Memora is typically resolved through dependency injection as a generic entity service.
 
 ```php
-use ResourceFoundation\Api\IEntityDataService;
+use Base3\ResourceFoundation\Api\IEntityDataService;
 
 $memora = $container->get(IEntityDataService::class);
 ```
@@ -218,10 +219,10 @@ Inside BASE3 display classes this is commonly injected via the constructor.
 ```php
 <?php declare(strict_types=1);
 
-namespace Base3XrmWebsite\Content;
+namespace Base3\Base3XrmWebsite\Content;
 
-use Base3\Api\IDisplay;
-use ResourceFoundation\Api\IEntityDataService;
+use Base3\CoreFoundation\Api\IDisplay;
+use Base3\ResourceFoundation\Api\IEntityDataService;
 
 class ExampleDisplay implements IDisplay {
 
@@ -991,7 +992,7 @@ Admins are no longer represented through `sysroleaccess`.
 The admin bypass is checked through the active Usermanager permission model:
 
 ```php
-use Base3\Usermanager\Permission;
+use Base3\CoreFoundation\Usermanager\Permission;
 
 $authorization->decide(new AuthorizationRequest('base3', Permission::for('entry', 'admin')))->isAllowed();
 ```
@@ -1213,7 +1214,7 @@ Memora is intentionally built around extensions.
 Interface:
 
 ```php
-Memora\Api\IMemoraQueryExtension
+Base3\Memora\Api\IMemoraQueryExtension
 ```
 
 Responsibilities:
@@ -1241,7 +1242,7 @@ Examples:
 Interface:
 
 ```php
-Memora\Api\IMemoraCreateExtension
+Base3\Memora\Api\IMemoraCreateExtension
 ```
 
 Responsibilities:
@@ -1269,7 +1270,7 @@ Examples:
 Interface:
 
 ```php
-Memora\Api\IMemoraUpdateExtension
+Base3\Memora\Api\IMemoraUpdateExtension
 ```
 
 Responsibilities:
@@ -1499,28 +1500,28 @@ This means Memora can serve as the normal default implementation while a project
 Memora currently provides these native and ResourceFoundation-backed services:
 
 ```text
-ResourceFoundation\Api\IEntityDataService      -> Memora\Service\MemoraEntityDataService
-ResourceFoundation\Api\IEntityFileService      -> Memora\Service\MemoraEntityFileService
-ResourceFoundation\Api\IEntityProfileService   -> Memora\Service\MemoraProfileService
-Base3\Authorization\Api\IAuthorizationCatalogService -> Memora\Service\MemoraAuthorizationCatalogService
-Base3\Authorization\Api\IAuthorizationService        -> Memora\Service\MemoraResourceAuthorizationService (xrm entry authority)
-Base3\Authorization\Api\IAuthorizationAdministrationService -> Memora\Service\MemoraEntryAuthorizationAdministrationService
-ResourceFoundation\Api\IEntityRelationService  -> Memora\Service\MemoraRelationService
-ResourceFoundation\Api\IEntityMetadataService  -> Memora\Service\MemoraMetadataService
-ResourceFoundation\Api\IEntityTagService       -> Memora\Service\MemoraTagService
-ResourceFoundation\Api\IEntityStructureService -> Memora\Service\MemoraStructureService
-ResourceFoundation\Api\IEntityActivityService  -> Memora\Service\MemoraActivityService
-ResourceFoundation\Api\IEntityUserDataService  -> Memora\Service\MemoraUserDataService
-ResourceFoundation\Api\IFileStorage            -> FileBridge\Local\LocalFileStorage
+Base3\ResourceFoundation\Api\IEntityDataService      -> Base3\Memora\Service\MemoraEntityDataService
+Base3\ResourceFoundation\Api\IEntityFileService      -> Base3\Memora\Service\MemoraEntityFileService
+Base3\ResourceFoundation\Api\IEntityProfileService   -> Base3\Memora\Service\MemoraProfileService
+Base3\CoreFoundation\Authorization\Api\IAuthorizationCatalogService -> Base3\Memora\Service\MemoraAuthorizationCatalogService
+Base3\CoreFoundation\Authorization\Api\IAuthorizationService        -> Base3\Memora\Service\MemoraResourceAuthorizationService (xrm entry authority)
+Base3\CoreFoundation\Authorization\Api\IAuthorizationAdministrationService -> Base3\Memora\Service\MemoraEntryAuthorizationAdministrationService
+Base3\ResourceFoundation\Api\IEntityRelationService  -> Base3\Memora\Service\MemoraRelationService
+Base3\ResourceFoundation\Api\IEntityMetadataService  -> Base3\Memora\Service\MemoraMetadataService
+Base3\ResourceFoundation\Api\IEntityTagService       -> Base3\Memora\Service\MemoraTagService
+Base3\ResourceFoundation\Api\IEntityStructureService -> Base3\Memora\Service\MemoraStructureService
+Base3\ResourceFoundation\Api\IEntityActivityService  -> Base3\Memora\Service\MemoraActivityService
+Base3\ResourceFoundation\Api\IEntityUserDataService  -> Base3\Memora\Service\MemoraUserDataService
+Base3\ResourceFoundation\Api\IFileStorage            -> Base3\FileBridge\Local\LocalFileStorage
 ```
 
 Memora also keeps Memora-specific internal services:
 
 ```text
-Memora\Api\IMemoraQuerySchemaProvider
-Memora\Api\IMemoraQueryCompiler
-Memora\Api\IMemoraQueryService
-Memora\Api\IMemoraRoleResolver
+Base3\Memora\Api\IMemoraQuerySchemaProvider
+Base3\Memora\Api\IMemoraQueryCompiler
+Base3\Memora\Api\IMemoraQueryService
+Base3\Memora\Api\IMemoraRoleResolver
 ```
 
 These are implementation details of the Memora backend and should not normally be consumed by reusable feature plugins.
@@ -1533,7 +1534,7 @@ There is deliberately no compatibility alias for the old `MemoraApiIMemoraProfil
 Use this instead:
 
 ```php
-use ResourceFoundation\Api\IEntityProfileService;
+use Base3\ResourceFoundation\Api\IEntityProfileService;
 ```
 
 This is intentional. Profiles are a resource concern, not a Memora-only API concern.
@@ -1544,7 +1545,7 @@ Most concrete Memora services share structured query and table-write behavior.
 That shared behavior lives in:
 
 ```text
-Memora\Service\AbstractMemoraTableService
+Base3\Memora\Service\AbstractMemoraTableService
 ```
 
 This class is an internal convenience base class. It centralizes repetitive work such as:
@@ -1611,7 +1612,7 @@ Memora control records  -> use direct structured query service methods
 ### Example: relation service
 
 ```php
-use ResourceFoundation\Api\IEntityRelationService;
+use Base3\ResourceFoundation\Api\IEntityRelationService;
 
 final class ProjectRelations {
 
@@ -1630,7 +1631,7 @@ The service hides the concrete `sysalloc` representation and delegates to the ex
 ### Example: metadata service
 
 ```php
-use ResourceFoundation\Api\IEntityMetadataService;
+use Base3\ResourceFoundation\Api\IEntityMetadataService;
 
 $metadataService->setMetadata($entryId, [
         'external_id' => 'abc-123',
@@ -1643,7 +1644,7 @@ $value = $metadataService->getMetadataValue($entryId, 'external_id');
 ### Example: tag service
 
 ```php
-use ResourceFoundation\Api\IEntityTagService;
+use Base3\ResourceFoundation\Api\IEntityTagService;
 
 $tagService->addEntryTags($entryId, ['crm', 'important']);
 $tagService->removeEntryTags($entryId, ['old']);
@@ -1653,7 +1654,7 @@ $tagService->replaceEntryTags($entryId, ['crm', 'customer']);
 ### Example: user data service
 
 ```php
-use ResourceFoundation\Api\IEntityUserDataService;
+use Base3\ResourceFoundation\Api\IEntityUserDataService;
 
 $userDataService->setUserData($entryId, [
         'pinned' => true,
@@ -1789,7 +1790,7 @@ role/manage
 In PHP, permissions are usually addressed through the Usermanager model:
 
 ```php
-use Base3\Usermanager\Permission;
+use Base3\CoreFoundation\Usermanager\Permission;
 
 Permission::for('entry', 'admin');
 Permission::for('entry', 'create');
@@ -1856,7 +1857,7 @@ If the active Usermanager reports that the current user can `entry/admin`, Memor
 Conceptual check:
 
 ```php
-use Base3\Usermanager\Permission;
+use Base3\CoreFoundation\Usermanager\Permission;
 
 if ($authorization->decide(new AuthorizationRequest('base3', Permission::for('entry', 'admin')))->isAllowed()) {
         // Current user may bypass normal entry ACL filtering.
@@ -1876,8 +1877,8 @@ base3system_sysuseraccess.mode = owner
 The BASE3 authorization catalog service is:
 
 ```text
-Base3\Authorization\Api\IAuthorizationCatalogService
-Memora\Service\MemoraAuthorizationCatalogService
+Base3\CoreFoundation\Authorization\Api\IAuthorizationCatalogService
+Base3\Memora\Service\MemoraAuthorizationCatalogService
 ```
 
 It manages roles and permissions without exposing Memora's internal table handling to consumers.
@@ -1885,7 +1886,7 @@ It manages roles and permissions without exposing Memora's internal table handli
 Create a role:
 
 ```php
-use Base3\Authorization\Api\IAuthorizationCatalogService;
+use Base3\CoreFoundation\Authorization\Api\IAuthorizationCatalogService;
 
 $roleId = $accessService->createRole([
         'name' => 'content_editor',
