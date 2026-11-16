@@ -18,18 +18,48 @@
 namespace Base3\Memora\Query;
 
 use Base3\Memora\Api\IMemoraQuerySchemaProvider;
+use Base3\ResourceFoundation\Api\IQuerySchemaDefinitionProvider;
 use Base3\ResourceFoundation\Dto\FieldMetadata;
 use Base3\ResourceFoundation\Dto\ForeignKeyReference;
 use Base3\ResourceFoundation\Dto\JoinMetadata;
 use Base3\ResourceFoundation\Dto\TableMetadata;
 
-class MemoraQuerySchemaProvider implements IMemoraQuerySchemaProvider {
+class MemoraQuerySchemaProvider implements IMemoraQuerySchemaProvider, IQuerySchemaDefinitionProvider {
 
 	private string $schemaDir;
 
 	public function __construct() {
 		$this->schemaDir = rtrim(DIR_PLUGIN, '/\\') . '/Memora/local/Schema';
 	}
+
+	// IQuerySchemaDefinitionProvider: expose the existing Memora files to DataHawk.
+
+	public static function getName(): string {
+		return 'memoraqueryschemaprovider';
+	}
+
+	public function getScope(): string {
+		return 'memora';
+	}
+
+	public function getDefinitions(): array {
+		$definitions = [];
+		foreach (glob($this->schemaDir . '/*.json') ?: [] as $file) {
+			$data = $this->loadDefinitionFromFile($file);
+			if ($data === null) continue;
+
+			$name = pathinfo($file, PATHINFO_FILENAME);
+			if ($name === '') continue;
+
+			$definitions[$name] = [
+				'enabled' => true,
+				'definition' => $data
+			];
+		}
+		return $definitions;
+	}
+
+	// IMemoraQuerySchemaProvider: preserve direct Memora query semantics.
 
 	public function getSchema(): array {
 		$tables = [];
@@ -48,11 +78,8 @@ class MemoraQuerySchemaProvider implements IMemoraQuerySchemaProvider {
 	}
 
 	private function loadTableFromFile(string $file): ?TableMetadata {
-		$json = file_get_contents($file);
-		if ($json === false || $json === '') return null;
-
-		$data = json_decode($json, true);
-		if (!is_array($data) || empty($data['name']) || !is_string($data['name'])) return null;
+		$data = $this->loadDefinitionFromFile($file);
+		if ($data === null) return null;
 
 		$fields = [];
 		foreach (($data['fields'] ?? []) as $f) {
@@ -107,6 +134,15 @@ class MemoraQuerySchemaProvider implements IMemoraQuerySchemaProvider {
 			sensitive: (bool)($data['sensitive'] ?? false),
 			position: is_array($data['position'] ?? null) ? $data['position'] : []
 		);
+	}
+
+	private function loadDefinitionFromFile(string $file): ?array {
+		$json = file_get_contents($file);
+		if ($json === false || $json === '') return null;
+
+		$data = json_decode($json, true);
+		if (!is_array($data) || empty($data['name']) || !is_string($data['name'])) return null;
+		return $data;
 	}
 
 	private function shortenTableName(string $tableName): string {

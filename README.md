@@ -41,6 +41,14 @@ Memora is designed to act as the central data backbone for BASE3-based applicati
 
 ---
 
+## DataHawk reporting schema integration
+
+Memora keeps the JSON files in `local/Schema/` as the sole source of its query-schema metadata. Its existing `MemoraQuerySchemaProvider` continues to serve `IMemoraQuerySchemaProvider` to domain queries and also implements DataHawk's `IQuerySchemaDefinitionProvider` with technical scope `memora`. Both paths read the same files; no settings records or additional schema repository are created.
+
+The discoverable `MemoraReportingScopeDefinitionProvider` assigns this technical schema scope to the visible `memora` reporting scope. DataHawk's existing `DataHawkQuerySchemaProviderRegistry`, `CompositeQuerySchemaProvider` and `ReportingScopeRegistry` own selection and composition. Displays can select this reporting scope explicitly and retain their domain/tag filters. Vizion's existing feature authorization remains responsible for allowing schema display; registration alone does not authorize it.
+
+---
+
 ## Overview
 
 Memora abstracts a set of relational tables into a consistent entity API.

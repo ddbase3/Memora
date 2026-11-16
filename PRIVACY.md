@@ -27,3 +27,8 @@ personal data. Service membership mappings are stored outside this plugin in
 host configuration; KeyHarbor processes credential metadata separately. The
 operator retains responsibility for deletion and revocation of memberships,
 backups and historic ACL changes. No additional network recipient is created.
+
+
+## DataHawk schema reporting integration (2026-11-16)
+
+Memora exposes its existing local JSON table/field metadata through the already installed DataHawk schema-definition registry under technical scope `memora`. No new schema copies, database rows, account records, or network recipients are created by this registration. The metadata can contain internal table names, field descriptions, joins and sensitivity indicators. Access to the interactive DBDesigner is governed by Vizion's existing feature authorization and the host's configured grants; this change neither grants new permissions nor publishes entry contents. Operators remain responsible for restricting access and for deployment-specific logging, backups and retention.
